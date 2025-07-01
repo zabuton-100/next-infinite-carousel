@@ -447,16 +447,38 @@ export const InfiniteCarousel: React.FC = () => {
     startTranslateX: 0, // 追加: スワイプ開始時のtranslateX
   });
 
+  // SVG表示用の状態
+  const [showCheck, setShowCheck] = useState(false);
+  const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // SVGを一瞬表示する関数
+  const triggerCheck = useCallback(() => {
+    setShowCheck(true);
+    console.log('[CheckCircle] 表示開始');
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    checkTimerRef.current = setTimeout(() => {
+      setShowCheck(false);
+      console.log('[CheckCircle] 表示終了');
+    }, 700); // 0.7秒表示
+  }, []);
+
+  // クリーンアップ
+  useEffect(() => {
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, []);
+
   // ドラッグ・スワイプ開始
   const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
     stopAutoScroll();
+    triggerCheck(); // スワイプ開始時にもチェックサークル表示
     dragState.current.isDragging = true;
     dragState.current.isTouch = 'touches' in e;
     dragState.current.startX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     dragState.current.lastX = dragState.current.startX;
     dragState.current.startTranslateX = translateX; // 追加
     setNoTransition(true); // 追加: スワイプ中はアニメーション無効
-    // マウス時はmove/upをwindowにバインド
     if (!('touches' in e)) {
       window.addEventListener('mousemove', handleDragMove as EventListener);
       window.addEventListener('mouseup', handleDragEnd as EventListener);
@@ -486,19 +508,18 @@ export const InfiniteCarousel: React.FC = () => {
     const dx = dragState.current.lastX - dragState.current.startX;
     dragState.current.isDragging = false;
     setNoTransition(false); // 追加: スワイプ終了でアニメーション復帰
-    // マウス時はmove/upをwindowから外す
     if (!dragState.current.isTouch) {
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
-    // スワイプ閾値
-    const threshold = isMobile ? 15 : 30; // SPは15, PCは30
+    const threshold = isMobile ? 15 : 30;
     if (dx > threshold) {
+      triggerCheck();
       slideTo(currentIndex - slidesPerGroup);
     } else if (dx < -threshold) {
+      triggerCheck();
       slideTo(currentIndex + slidesPerGroup);
     } else {
-      // 閾値未満なら元の位置に戻す
       setTranslateX(dragState.current.startTranslateX);
     }
   };
@@ -509,6 +530,7 @@ export const InfiniteCarousel: React.FC = () => {
     const wheelThreshold = isMobile ? 10 : 20; // SPは10, PCは20
     if (Math.abs(e.deltaX) > wheelThreshold && !isAnimating) {
       stopAutoScroll();
+      triggerCheck(); // ホイール（タッチパッドスワイプ）でもチェックサークル表示
       if (e.deltaX > 0) {
         slideTo(currentIndex + slidesPerGroup);
       } else {
@@ -553,7 +575,7 @@ export const InfiniteCarousel: React.FC = () => {
           {/* 左ボタン */}
           {isMobile ? (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); triggerCheck(); }}
               className={navButtonClass}
               style={navButtonLeftStyle}
               aria-label="前へ"
@@ -565,7 +587,7 @@ export const InfiniteCarousel: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); triggerCheck(); }}
               className={navButtonClass}
               aria-label="前へ"
               disabled={isAnimating}
@@ -610,6 +632,15 @@ export const InfiniteCarousel: React.FC = () => {
                     className={cardClass}
                     style={{ backgroundColor: side.color }}
                   >
+                    {/* --- SVG表示 --- */}
+                    {showCheck && Array.from({length: visibleCountNum}).some((_, i) => idx === currentIndex + i) && (
+                      <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-check-big text-green-500 animate-fade-pop">
+                          <path d="M21.801 10A10 10 0 1 1 17 3.335"></path>
+                          <path d="m9 11 3 3L22 4"></path>
+                        </svg>
+                      </div>
+                    )}
                     <div className="absolute top-1 left-1 bg-blue-500 text-white text-lg md:text-xl font-bold px-1 md:px-3 py-0.5 md:py-2 rounded-full">
                       {(idx % 10) + 1}
                     </div>
@@ -639,7 +670,7 @@ export const InfiniteCarousel: React.FC = () => {
             {/* SP時のみ右ボタンをカルーセル内に絶対配置 */}
             {isMobile && (
               <button
-                onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); }}
+                onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); triggerCheck(); }}
                 className={navButtonClass}
                 style={navButtonRightStyle}
                 aria-label="次へ"
@@ -654,7 +685,7 @@ export const InfiniteCarousel: React.FC = () => {
           {/* 右ボタン（PC時のみ） */}
           {!isMobile && (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); triggerCheck(); }}
               className={navButtonClass}
               aria-label="次へ"
               disabled={isAnimating}
