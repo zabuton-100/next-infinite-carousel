@@ -444,6 +444,7 @@ export const InfiniteCarousel: React.FC = () => {
     startX: 0,
     lastX: 0,
     isTouch: false,
+    startTranslateX: 0, // 追加: スワイプ開始時のtranslateX
   });
 
   // ドラッグ・スワイプ開始
@@ -453,6 +454,8 @@ export const InfiniteCarousel: React.FC = () => {
     dragState.current.isTouch = 'touches' in e;
     dragState.current.startX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     dragState.current.lastX = dragState.current.startX;
+    dragState.current.startTranslateX = translateX; // 追加
+    setNoTransition(true); // 追加: スワイプ中はアニメーション無効
     // マウス時はmove/upをwindowにバインド
     if (!('touches' in e)) {
       window.addEventListener('mousemove', handleDragMove as EventListener);
@@ -472,6 +475,9 @@ export const InfiniteCarousel: React.FC = () => {
       return;
     }
     dragState.current.lastX = clientX;
+    // 追加: スワイプ中はtranslateXを動的に更新
+    const dx = clientX - dragState.current.startX;
+    setTranslateX(dragState.current.startTranslateX + dx);
   };
 
   // ドラッグ・スワイプ終了
@@ -479,17 +485,34 @@ export const InfiniteCarousel: React.FC = () => {
     if (!dragState.current.isDragging) return;
     const dx = dragState.current.lastX - dragState.current.startX;
     dragState.current.isDragging = false;
+    setNoTransition(false); // 追加: スワイプ終了でアニメーション復帰
     // マウス時はmove/upをwindowから外す
     if (!dragState.current.isTouch) {
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
     // スワイプ閾値
-    const threshold = 50;
+    const threshold = 30; // 50→30に変更
     if (dx > threshold) {
       slideTo(currentIndex - slidesPerGroup);
     } else if (dx < -threshold) {
       slideTo(currentIndex + slidesPerGroup);
+    } else {
+      // 閾値未満なら元の位置に戻す
+      setTranslateX(dragState.current.startTranslateX);
+    }
+  };
+
+  // ホイールイベント対応（トラックパッド横スクロール）
+  const handleWheel = (e: React.WheelEvent) => {
+    // 横スクロール量が一定以上ならスライド
+    if (Math.abs(e.deltaX) > 20 && !isAnimating) {
+      stopAutoScroll();
+      if (e.deltaX > 0) {
+        slideTo(currentIndex + slidesPerGroup);
+      } else {
+        slideTo(currentIndex - slidesPerGroup);
+      }
     }
   };
 
@@ -563,6 +586,7 @@ export const InfiniteCarousel: React.FC = () => {
               onTouchMove={handleDragMove}
               onTouchEnd={handleDragEnd}
               onMouseDown={handleDragStart}
+              onWheel={handleWheel} // 追加
             >
               {Array.from({ length: totalSlides }).map((_, idx) => {
                 // idxをimageCountで割った余りでemojiPairsArrayから取得
