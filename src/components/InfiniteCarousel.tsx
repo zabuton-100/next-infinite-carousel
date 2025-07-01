@@ -492,7 +492,7 @@ export const InfiniteCarousel: React.FC = () => {
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
     // スワイプ閾値
-    const threshold = 30; // 50→30に変更
+    const threshold = isMobile ? 15 : 30; // SPは15, PCは30
     if (dx > threshold) {
       slideTo(currentIndex - slidesPerGroup);
     } else if (dx < -threshold) {
@@ -506,7 +506,8 @@ export const InfiniteCarousel: React.FC = () => {
   // ホイールイベント対応（トラックパッド横スクロール）
   const handleWheel = (e: React.WheelEvent) => {
     // 横スクロール量が一定以上ならスライド
-    if (Math.abs(e.deltaX) > 20 && !isAnimating) {
+    const wheelThreshold = isMobile ? 10 : 20; // SPは10, PCは20
+    if (Math.abs(e.deltaX) > wheelThreshold && !isAnimating) {
       stopAutoScroll();
       if (e.deltaX > 0) {
         slideTo(currentIndex + slidesPerGroup);
