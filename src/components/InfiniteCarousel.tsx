@@ -514,9 +514,11 @@ export const InfiniteCarousel: React.FC = () => {
     }
     const threshold = isMobile ? 15 : 30;
     if (dx > threshold) {
+      setLastScrollDirection('swipe-left');
       triggerCheck();
       slideTo(currentIndex - slidesPerGroup);
     } else if (dx < -threshold) {
+      setLastScrollDirection('swipe-right');
       triggerCheck();
       slideTo(currentIndex + slidesPerGroup);
     } else {
@@ -530,6 +532,7 @@ export const InfiniteCarousel: React.FC = () => {
     const wheelThreshold = isMobile ? 10 : 20; // SPは10, PCは20
     if (Math.abs(e.deltaX) > wheelThreshold && !isAnimating) {
       stopAutoScroll();
+      setLastScrollDirection(e.deltaX > 0 ? 'swipe-right' : 'swipe-left');
       triggerCheck(); // ホイール（タッチパッドスワイプ）でもチェックサークル表示
       if (e.deltaX > 0) {
         slideTo(currentIndex + slidesPerGroup);
@@ -538,6 +541,9 @@ export const InfiniteCarousel: React.FC = () => {
       }
     }
   };
+
+  // スクロール方向を管理するstateを追加
+  const [lastScrollDirection, setLastScrollDirection] = useState<'swipe-left' | 'swipe-right' | 'button-left' | 'button-right'>('swipe-right');
 
   if (isMobile === undefined || visibleCount === undefined) return null;
 
@@ -575,7 +581,7 @@ export const InfiniteCarousel: React.FC = () => {
           {/* 左ボタン */}
           {isMobile ? (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); triggerCheck(); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); setLastScrollDirection('button-left'); triggerCheck(); }}
               className={navButtonClass}
               style={navButtonLeftStyle}
               aria-label="前へ"
@@ -587,7 +593,7 @@ export const InfiniteCarousel: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); triggerCheck(); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex - slidesPerGroup); setLastScrollDirection('button-left'); triggerCheck(); }}
               className={navButtonClass}
               aria-label="前へ"
               disabled={isAnimating}
@@ -635,9 +641,13 @@ export const InfiniteCarousel: React.FC = () => {
                     {/* --- SVG表示 --- */}
                     {showCheck && Array.from({length: visibleCountNum}).some((_, i) => idx === currentIndex + i) && (
                       <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-check-big text-green-500 animate-fade-pop">
-                          <path d="M21.801 10A10 10 0 1 1 17 3.335"></path>
-                          <path d="m9 11 3 3L22 4"></path>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-green-500 animate-fade-pop" style={{opacity: 0.1}}>
+                          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="white" fillOpacity="0.7"/>
+                          {(lastScrollDirection === 'swipe-right' || lastScrollDirection === 'button-left') ? (
+                            <path d="M40 32H24M28 24l-8 8 8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          ) : (
+                            <path d="M24 32h16M36 24l8 8-8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          )}
                         </svg>
                       </div>
                     )}
@@ -670,7 +680,7 @@ export const InfiniteCarousel: React.FC = () => {
             {/* SP時のみ右ボタンをカルーセル内に絶対配置 */}
             {isMobile && (
               <button
-                onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); triggerCheck(); }}
+                onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); setLastScrollDirection('button-right'); triggerCheck(); }}
                 className={navButtonClass}
                 style={navButtonRightStyle}
                 aria-label="次へ"
@@ -685,7 +695,7 @@ export const InfiniteCarousel: React.FC = () => {
           {/* 右ボタン（PC時のみ） */}
           {!isMobile && (
             <button
-              onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); triggerCheck(); }}
+              onClick={() => { stopAutoScroll(); slideTo(currentIndex + slidesPerGroup); setLastScrollDirection('button-right'); triggerCheck(); }}
               className={navButtonClass}
               aria-label="次へ"
               disabled={isAnimating}
