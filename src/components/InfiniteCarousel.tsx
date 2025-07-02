@@ -200,6 +200,7 @@ export const InfiniteCarousel: React.FC = () => {
   // スライド移動時に絵文字配列を動的に更新
   const slideTo = useCallback((target: number) => {
     if (isAnimating) return;
+    console.log('[slideTo] 呼び出し', { currentIndex, target });
     setIsAnimating(true);
     setNoTransition(false);
     setIsAnimatingAll(true);
@@ -216,6 +217,7 @@ export const InfiniteCarousel: React.FC = () => {
       const diff = target - currentIndex;
       const newArray = [...emojiPairsArray];
       let newIndex = currentIndex;
+      console.log('[slideTo] diff計算', { diff, currentIndex, target });
       if (diff > 0) {
         // 右に進む
         for (let i = 0; i < diff; i++) {
@@ -225,6 +227,12 @@ export const InfiniteCarousel: React.FC = () => {
           newArray.push(pair);
           newArray.shift();
           newIndex++;
+        }
+        if (newIndex >= totalSlides) {
+          if (currentIndex === totalSlides - 1 && target === totalSlides) {
+            console.log('★巻き戻し発生！currentIndex: 29 → target: 30（端で逆スクロール現象が起こりやすいポイント）', { currentIndex, target, newIndex, totalSlides });
+          }
+          console.log('[slideTo] 右端を超えた！巻き戻し発生', { newIndex, totalSlides });
         }
       } else if (diff < 0) {
         // 左に戻る
@@ -236,11 +244,30 @@ export const InfiniteCarousel: React.FC = () => {
           newArray.pop();
           newIndex--;
         }
+        if (newIndex < 0) {
+          console.log('[slideTo] 左端を超えた！巻き戻し発生', { newIndex, totalSlides });
+        }
       }
+      const wrappedIndex = ((newIndex % totalSlides) + totalSlides) % totalSlides;
       setEmojiPairsArray(newArray);
-      setCurrentIndex(((newIndex % totalSlides) + totalSlides) % totalSlides); // 0〜totalSlides-1でループ
       const paddingOffset = isMobile ? 16 : 0;
-      setTranslateX(-itemWidth * (((newIndex % totalSlides) + totalSlides) % totalSlides) + paddingOffset);
+      const nextTranslateX = -itemWidth * wrappedIndex + paddingOffset;
+      // 巻き戻しが発生した場合はアニメーションOFFでジャンプ
+      if (newIndex >= totalSlides || newIndex < 0) {
+        setNoTransition(true);
+        setCurrentIndex(wrappedIndex);
+        setTranslateX(nextTranslateX);
+        console.log('[slideTo] 巻き戻しジャンプ', { newIndex, wrappedIndex, translateX: nextTranslateX, noTransition: true });
+        // 次のtickでアニメーションONに戻して通常スクロール再開
+        setTimeout(() => {
+          setNoTransition(false);
+          console.log('[slideTo] 巻き戻し後アニメーションON', { currentIndex: wrappedIndex, translateX: nextTranslateX, noTransition: false });
+        }, 20);
+      } else {
+        setCurrentIndex(wrappedIndex); // 0〜totalSlides-1でループ
+        setTranslateX(nextTranslateX);
+        console.log('[slideTo] setCurrentIndex/setTranslateX', { newIndex, wrappedIndex, translateX: nextTranslateX, noTransition });
+      }
       setTimeout(() => {
         setIsAnimatingAll(true);
         setFlippedIndexes(prev => {
@@ -253,6 +280,7 @@ export const InfiniteCarousel: React.FC = () => {
         setTimeout(() => {
           setIsAnimating(false);
           setIsAnimatingAll(false);
+          console.log('[slideTo] アニメーション終了', { currentIndex: wrappedIndex, translateX: nextTranslateX, noTransition });
         }, 500);
       }, 500);
     }, 500);
