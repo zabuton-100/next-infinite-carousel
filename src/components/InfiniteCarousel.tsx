@@ -541,7 +541,10 @@ export const InfiniteCarousel: React.FC = () => {
   // ドラッグ・スワイプ開始
   const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
     stopAutoScroll();
-    triggerCheck(); // スワイプ開始時にもチェックサークル表示
+    // マウスドラッグ時は開始時にチェックサークル表示しない（終了時のみ表示）
+    if ('touches' in e) {
+      triggerCheck(); // タッチ時のみ開始時にチェックサークル表示
+    }
     dragState.current.isDragging = true;
     dragState.current.isTouch = 'touches' in e;
     dragState.current.startX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -581,7 +584,7 @@ export const InfiniteCarousel: React.FC = () => {
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
-    const threshold = isMobile ? 15 : 30;
+    const threshold = isMobile ? 10 : 20; // タッチパッドと同じ閾値に統一
     if (dx > threshold) {
       setLastScrollDirection('swipe-left');
       triggerCheck();
@@ -708,7 +711,7 @@ export const InfiniteCarousel: React.FC = () => {
                     style={{ backgroundColor: side.color }}
                   >
                     {/* --- SVG表示 --- */}
-                    {showCheck && Array.from({length: visibleCountNum}).some((_, i) => idx === currentIndex + i) && (
+                    {showCheck && (
                       <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-green-500 animate-fade-pop" style={{opacity: 0.1}}>
                           <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="white" fillOpacity="0.7"/>
