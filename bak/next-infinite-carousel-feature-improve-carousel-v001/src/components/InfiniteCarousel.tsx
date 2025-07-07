@@ -37,6 +37,104 @@ function getLogTimestamp() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${('00' + d.getMilliseconds()).slice(-3)}`;
 }
 
+// 絵文字の代表的なUnicode範囲からランダムに1つ選ぶ（emoji-dictionaryで名称が取れるもののみ）
+function getRandomEmoji() {
+  const ranges = [
+    [0x1F300, 0x1F5FF],
+    [0x1F600, 0x1F64F],
+    [0x1F680, 0x1F6FF],
+    [0x1F700, 0x1F77F],
+    [0x1F780, 0x1F7FF],
+    [0x1F800, 0x1F8FF],
+    [0x1F900, 0x1F9FF],
+    [0x1FA00, 0x1FAFF],
+    [0x2600, 0x26FF],
+    [0x2700, 0x27BF],
+  ];
+  let emoji = "";
+  let tries = 0;
+  while (!emoji || !emojiDictionary.getName(emoji)) {
+    const range = ranges[Math.floor(Math.random() * ranges.length)];
+    const codePoint = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+    emoji = String.fromCodePoint(codePoint);
+    tries++;
+    if (tries > 20) break; // 無限ループ防止
+  }
+  return emoji;
+}
+
+// パステル系の明るい色リスト
+const pastelColors = [
+  '#ffd1dc', // ピンク
+  '#ffe4b5', // モカ
+  '#b5ead7', // ミント
+  '#c7ceea', // ラベンダー
+  '#fdfd96', // イエロー
+  '#baffc9', // グリーン
+  '#bae1ff', // ブルー
+  '#fff1ba', // クリーム
+  '#ffb7b2', // サーモン
+  '#e2f0cb', // ライトグリーン
+  // 追加バリエーション
+  '#ffe0f0', // ライトピンク
+  '#ffe5ec', // ベビーピンク
+  '#e0bbff', // ライトパープル
+  '#d0f4de', // ペールグリーン
+  '#f1f7b5', // ペールイエロー
+  '#b5ead7', // ミントグリーン
+  '#b5d8ff', // ライトブルー
+  '#f7cac9', // ペールピンク
+  '#f6eac2', // ペールクリーム
+  '#e2f0cb', // ペールグリーン
+  '#f3ffe3', // ホワイトグリーン
+  '#e3f6fd', // ホワイトブルー
+  '#fff5e1', // ホワイトイエロー
+  '#f9e2ae', // ペールオレンジ
+  '#e4f9f5', // アクア
+  '#f7f6e7', // アイボリー
+  '#fbe7c6', // ペールオレンジ
+  '#e2ece9', // ペールグレー
+  '#f6dfeb', // ペールラベンダー
+];
+// ダーク系の暗い色リスト
+const darkColors = [
+  '#22223b', // ダークネイビー
+  '#4a4e69', // グレー
+  '#232946', // ダークブルー
+  '#1a1a2e', // ダークパープル
+  '#2d3142', // ダークグレー
+  '#222831', // ブラックグレー
+  '#393e46', // チャコール
+  '#212121', // ブラック
+  '#343a40', // ダークスレート
+  '#2c2c54', // ディープパープル
+  // 追加バリエーション
+  '#1b1b2f', // ダークネイビー2
+  '#162447', // ダークブルー2
+  '#1f4068', // ダークブルー3
+  '#283655', // ダークブルー4
+  '#3a3a3a', // ダークグレー2
+  '#232931', // ブラックグレー2
+  '#393e46', // チャコール2
+  '#222f3e', // ダークネイビー3
+  '#2d3436', // ダークグレー3
+  '#353b48', // ダークグレー4
+  '#2f3640', // ダークグレー5
+  '#1e272e', // ブラック2
+  '#485460', // ダークグレー6
+  '#3d3d5c', // ダークパープル2
+  '#2c3e50', // ダークブルー5
+  '#22313f', // ダークブルー6
+  '#1a1a40', // ダークパープル3
+  '#232b2b', // ブラックグリーン
+  '#2e2e38', // ダークグレー7
+  '#22223b', // ダークネイビー4
+];
+
+function getRandomFromArray<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 // getComplementaryColor, toTitleCaseFromSnakeの本来の実装を復元
 function getComplementaryColor(hex: string) {
   hex = hex.replace('#', '');
@@ -65,20 +163,14 @@ function toTitleCaseFromSnake(str: string) {
     .join(' ');
 }
 
-// --- ファイル末尾にまとめて定義・export ---
-type EmojiPair = {
-  front: { emoji: string; color: string };
-  back: { emoji: string; color: string };
-};
-export interface InfiniteCarouselProps {
-  emojiPairsArray: EmojiPair[];
-}
-const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) => {
+export const InfiniteCarousel: React.FC = () => {
   const { isMobile, visibleCount } = useResponsiveCarouselCount();
 
   // ここで全てのHooksを呼び出す
   const imageCount = 10; // 使わなくなるが一応残す
   const slidesPerGroup = isMobile ? 1 : SWIPER_CONFIG.slidesPerGroup;
+
+  // 仮想スライド配列の長さだけを使う（中身は使わない）
   const totalSlides = 10 * 3; // 10個×3セット
   const initialIndex = 10;
 
@@ -93,12 +185,147 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
   // 初回描画判定用
   const isFirstRender = useRef(true);
 
+  // 先読み分の数
+  const preloadCount = isMobile ? 2 : 6; // SP:左右1枚ずつ, PC:左右3枚ずつ
+  const emojiArrayLength = (visibleCount ?? 3) + preloadCount;
+
+  // 重複しないランダム絵文字ペアを生成
+  function getUniqueRandomEmojiPair(existingEmojis: Set<string>) {
+    let emoji = getRandomEmoji();
+    let tries = 0;
+    while (existingEmojis.has(emoji) && tries < 50) {
+      emoji = getRandomEmoji();
+      tries++;
+    }
+    return {
+      front: {
+        emoji,
+        color: getRandomFromArray(pastelColors),
+      },
+      back: {
+        emoji: getRandomEmoji(),
+        color: getRandomFromArray(darkColors),
+      },
+    };
+  }
+
+  // emojiPairsArrayの初期化
+  const [emojiPairsArray, setEmojiPairsArray] = useState(() => {
+    const set = new Set<string>();
+    const arr = [];
+    for (let i = 0; i < emojiArrayLength; i++) {
+      const pair = getUniqueRandomEmojiPair(set);
+      set.add(pair.front.emoji);
+      arr.push(pair);
+    }
+    return arr;
+  });
+
+  // SP/PC切り替え時に絵文字配列を再生成
+  useEffect(() => {
+    const set = new Set<string>();
+    const arr = [];
+    for (let i = 0; i < emojiArrayLength; i++) {
+      const pair = getUniqueRandomEmojiPair(set);
+      set.add(pair.front.emoji);
+      arr.push(pair);
+    }
+    setEmojiPairsArray(arr);
+    setCurrentIndex(Math.floor(preloadCount / 2)); // 先読み分の中央からスタート
+  }, [isMobile, visibleCount]);
+
   // flipInX中のindexを管理
   const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
   const visibleCountNum = visibleCount as number;
 
-  // flipInXで明るい面に戻すアニメーション用
-  const [flippingBackIndexes, setFlippingBackIndexes] = useState<Set<number>>(new Set());
+  // スライド移動時に絵文字配列を動的に更新
+  const slideTo = useCallback((target: number) => {
+    if (isAnimating) return;
+    console.log('[slideTo] 呼び出し', { currentIndex, target });
+    setIsAnimating(true);
+    setNoTransition(false);
+    setIsAnimatingAll(true);
+    setFlippedIndexes(prev => {
+      const newSet = new Set(prev);
+      for (let i = 0; i < visibleCountNum; i++) {
+        newSet.add(currentIndex + i);
+      }
+      return newSet;
+    });
+    setTimeout(() => {
+      setIsAnimatingAll(false);
+      // 進む/戻る方向を判定
+      const diff = target - currentIndex;
+      const newArray = [...emojiPairsArray];
+      let newIndex = currentIndex;
+      console.log('[slideTo] diff計算', { diff, currentIndex, target });
+      if (diff > 0) {
+        // 右に進む
+        for (let i = 0; i < diff; i++) {
+          // 新しい絵文字を末尾に追加
+          const existing = new Set(newArray.map(e => e.front.emoji));
+          const pair = getUniqueRandomEmojiPair(existing);
+          newArray.push(pair);
+          newArray.shift();
+          newIndex++;
+        }
+        if (newIndex >= totalSlides) {
+          if (currentIndex === totalSlides - 1 && target === totalSlides) {
+            console.log('★巻き戻し発生！currentIndex: 29 → target: 30（端で逆スクロール現象が起こりやすいポイント）', { currentIndex, target, newIndex, totalSlides });
+          }
+          console.log('[slideTo] 右端を超えた！巻き戻し発生', { newIndex, totalSlides });
+        }
+      } else if (diff < 0) {
+        // 左に戻る
+        for (let i = 0; i < -diff; i++) {
+          // 新しい絵文字を先頭に追加
+          const existing = new Set(newArray.map(e => e.front.emoji));
+          const pair = getUniqueRandomEmojiPair(existing);
+          newArray.unshift(pair);
+          newArray.pop();
+          newIndex--;
+        }
+        if (newIndex < 0) {
+          console.log('[slideTo] 左端を超えた！巻き戻し発生', { newIndex, totalSlides });
+        }
+      }
+      const wrappedIndex = ((newIndex % totalSlides) + totalSlides) % totalSlides;
+      setEmojiPairsArray(newArray);
+      const paddingOffset = isMobile ? 16 : 0;
+      const nextTranslateX = -itemWidth * wrappedIndex + paddingOffset;
+      // 巻き戻しが発生した場合はアニメーションOFFでジャンプ
+      if (newIndex >= totalSlides || newIndex < 0) {
+        setNoTransition(true);
+        setCurrentIndex(wrappedIndex);
+        setTranslateX(nextTranslateX);
+        console.log('[slideTo] 巻き戻しジャンプ', { newIndex, wrappedIndex, translateX: nextTranslateX, noTransition: true });
+        // 次のtickでアニメーションONに戻して通常スクロール再開
+        setTimeout(() => {
+          setNoTransition(false);
+          console.log('[slideTo] 巻き戻し後アニメーションON', { currentIndex: wrappedIndex, translateX: nextTranslateX, noTransition: false });
+        }, 20);
+      } else {
+        setCurrentIndex(wrappedIndex); // 0〜totalSlides-1でループ
+        setTranslateX(nextTranslateX);
+        console.log('[slideTo] setCurrentIndex/setTranslateX', { newIndex, wrappedIndex, translateX: nextTranslateX, noTransition });
+      }
+      setTimeout(() => {
+        setIsAnimatingAll(true);
+        setFlippedIndexes(prev => {
+          const newSet = new Set(prev);
+          for (let i = 0; i < visibleCountNum; i++) {
+            newSet.delete(newIndex + i);
+          }
+          return newSet;
+        });
+        setTimeout(() => {
+          setIsAnimating(false);
+          setIsAnimatingAll(false);
+          console.log('[slideTo] アニメーション終了', { currentIndex: wrappedIndex, translateX: nextTranslateX, noTransition });
+        }, 500);
+      }, 500);
+    }, 500);
+  }, [isAnimating, itemWidth, isMobile, currentIndex, visibleCountNum, emojiPairsArray]);
 
   // ページタイトル（h1と同じ文字列）
   const PAGE_TITLE = "Carousel Demo";
@@ -256,71 +483,6 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     }
   }, [isAutoScrollStopped]);
 
-  // サーバー生成propsのみで動作するため、スライド移動はインデックスのみ変更
-  // ReferenceError対策として、slideToをこの位置で必ず定義
-  const slideTo = useCallback((target: number) => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-    setNoTransition(false);
-    setIsAnimatingAll(true);
-    setFlippedIndexes(prev => {
-      const newSet = new Set(prev);
-      for (let i = 0; i < visibleCountNum; i++) {
-        newSet.add(currentIndex + i);
-      }
-      return newSet;
-    });
-    setTimeout(() => {
-      setIsAnimatingAll(false);
-      const diff = target - currentIndex;
-      const newIndex = currentIndex + diff;
-      const wrappedIndex = ((newIndex % totalSlides) + totalSlides) % totalSlides;
-      const paddingOffset = isMobile ? 16 : 0;
-      const nextTranslateX = -itemWidth * wrappedIndex + paddingOffset;
-      if (newIndex >= totalSlides || newIndex < 0) {
-        setNoTransition(true);
-        setCurrentIndex(wrappedIndex);
-        setTranslateX(nextTranslateX);
-        setTimeout(() => {
-          setNoTransition(false);
-        }, 20);
-      } else {
-        setCurrentIndex(wrappedIndex);
-        setTranslateX(nextTranslateX);
-      }
-      setTimeout(() => {
-        setIsAnimating(false);
-        setIsAnimatingAll(false);
-        // --- 明るい面に戻す前にアニメーション用stateに追加 ---
-        setFlippingBackIndexes(prev => {
-          const newSet = new Set(prev);
-          for (let i = 0; i < visibleCountNum; i++) {
-            newSet.add(wrappedIndex + i);
-          }
-          return newSet;
-        });
-        // 明るい面に戻す
-        setFlippedIndexes(prev => {
-          const newSet = new Set(prev);
-          for (let i = 0; i < visibleCountNum; i++) {
-            newSet.delete(wrappedIndex + i);
-          }
-          return newSet;
-        });
-        // 一定時間後にアニメーション用stateから削除
-        setTimeout(() => {
-          setFlippingBackIndexes(prev => {
-            const newSet = new Set(prev);
-            for (let i = 0; i < visibleCountNum; i++) {
-              newSet.delete(wrappedIndex + i);
-            }
-            return newSet;
-          });
-        }, 500); // flipInXアニメーション時間
-      }, 500);
-    }, 500);
-  }, [isAnimating, itemWidth, isMobile, currentIndex, visibleCountNum, totalSlides]);
-
   // navigateをラップした自動スクロール用関数
   const handleAutoScrollNext = useCallback(() => {
     // isAnimating中はスキップ
@@ -455,25 +617,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
   // スクロール方向を管理するstateを追加
   const [lastScrollDirection, setLastScrollDirection] = useState<'swipe-left' | 'swipe-right' | 'button-left' | 'button-right'>('swipe-right');
 
-  if (isMobile === undefined || visibleCount === undefined) {
-    // --- スケルトンスクリーン ---
-    return (
-      <div className="w-full min-h-screen flex flex-col items-center bg-gray-100 pt-4 md:pt-12">
-        <div className="w-full max-w-6xl px-0 md:px-0">
-          <div className="flex items-center justify-center space-x-1 md:space-x-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-[240px] md:w-[300px] h-80 md:h-120 mx-2 p-4 flex flex-col items-center justify-center bg-gray-300 rounded-lg shadow-lg border-2 border-gray-200 animate-pulse">
-                <div className="w-20 h-20 bg-gray-200 rounded-full mb-4" />
-                <div className="w-2/3 h-6 bg-gray-200 rounded mb-2" />
-                <div className="w-1/2 h-4 bg-gray-200 rounded mb-1" />
-                <div className="w-1/3 h-4 bg-gray-200 rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (isMobile === undefined || visibleCount === undefined) return null;
 
   // カルーセルコンテナのスタイル分岐
   const carouselContainerClass = isMobile
@@ -557,8 +701,6 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
                 const emojiCategory = unicodeEmojiJson[side.emoji]?.group || "Other";
                 let cardClass = getCardClass();
                 if (isAnimatingAll) cardClass += ' slideOutDown flipInX';
-                // 明るい面に戻す時もflipInXを付与
-                if (flippingBackIndexes.has(idx)) cardClass += ' flipInX';
                 // 補色を計算
                 const textColor = getComplementaryColor(side.color);
                 return (
