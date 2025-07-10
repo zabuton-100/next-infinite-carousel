@@ -73,6 +73,8 @@ function slideTo(index: number) {
 
 👉 PointerEventの取り扱いやイベントキャンセルが地味に面倒！
 
+また、ドラッグイベント（onMouseDown/onTouchStart など）を正しくリッスンしないと、そもそもスワイプ操作自体が反応しないことも実装を通じて実感しました。UIの直感的な操作性を担保するには、ユーザーの入力イベントを網羅的にハンドリングすることが重要だと学びました。
+
 ---
 
 ### 3. **flipアニメーションの工夫**
@@ -85,6 +87,8 @@ const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
 ```
 
 👉 スライド中にだけ発火＆終わったら戻す、という**状態制御が重要**
+
+なお、flipInXアニメーションの実装は、Owl Carouselのアニメーションデモ（[owl.carousel.js Animate Demo](https://owlcarousel2.github.io/OwlCarousel2/demos/animate.html)）を参考にしています。Owl Carouselでは`animateIn: 'flipInX'`のように指定することで、CSSアニメーションを簡単に適用できる仕組みがあり、その考え方やクラス設計を自作実装にも活かしました。
 
 ---
 
@@ -139,7 +143,7 @@ return <InfiniteCarousel emojiPairsArray={arr} />
 
 ### requestAnimationFrameの活用
 
-秒ズレが起きやすい `setInterval` の代わりに `requestAnimationFrame` を使って「高精度な現在時刻表示」を実現。
+- 秒ズレが起きやすい `setInterval` の代わりに `requestAnimationFrame` を使って「高精度な現在時刻表示」を実現。
 
 ```tsx
 useEffect(() => {
@@ -152,6 +156,8 @@ useEffect(() => {
 }, []);
 ```
 
+この実装では、`requestAnimationFrame` により毎フレーム（約16msごと）で現在時刻を監視し、`setDate(new Date())` で状態を更新しています。Reactの再レンダリングは状態が変化したときのみ発生するため、秒が切り替わったタイミングでのみ画面が再描画され、結果として「1秒ごと」に時計表示が更新されます。setIntervalと異なり、ブラウザの描画タイミングと同期するため、より滑らかで正確な秒更新が可能です。
+
 ---
 
 ## 🧠 ライブラリを使わなかったからこそ分かったこと
@@ -160,6 +166,46 @@ useEffect(() => {
 * 状態管理の難しさ（同期 vs 非同期、ref vs state）
 * UIのちょっとした気遣いも実装コストがかかる
 * Next.jsの**サーバー/クライアント分離の恩恵**を実感
+
+---
+
+## 🪝 この実装で使っているReact Hooksとその理由
+
+本プロジェクトでは、Reactの標準HooksやカスタムHooksを積極的に活用しています。それぞれの用途と理由、そしてカルーセルのどの部分で使っているかは以下の通りです。
+
+### useState
+- `currentIndex`：現在表示中のスライド位置を管理
+- `isAnimating`/`isAnimatingAll`：アニメーション中かどうかのフラグ
+- `noTransition`：アニメーションを一時的に無効化するためのフラグ
+- `itemWidth`/`translateX`：スライドの幅や位置の管理
+- `flippedIndexes`/`flippingBackIndexes`：flipアニメーション中のカードインデックス管理
+- `isAutoScrollStopped`：オートスクロールの一時停止状態
+- `showCheck`：チェックアイコンの一時表示制御
+- `lastScrollDirection`：直近のスクロール方向（左右・ボタン/スワイプ）
+
+### useRef
+- `carouselRef`/`itemRef`：カルーセル本体や各カードのDOM参照
+- `isFirstRender`：初回描画かどうかの判定用フラグ
+- `autoScrollIntervalRef`/`checkTimerRef`：setInterval/setTimeoutのID管理
+- `dragState`：ドラッグ中の座標・状態（isDragging, startX, lastX, isTouch, startTranslateX など）
+
+### useEffect
+- スライド幅やウィンドウリサイズ時の再計算（`itemWidth`の更新）
+- 初期位置セットや中央ジャンプ時のアニメーション制御
+- 表示中の絵文字やタイトルの動的変更
+- オートスクロールの開始・停止、クリーンアップ
+- flipアニメーションのタイミング制御や、visibleなカードのログ出力
+
+### useCallback
+- `slideTo`：スライド移動処理（アニメーション・flip制御含む）
+- `stopAutoScroll`：ユーザー操作時の自動スクロール停止
+- `handleAutoScrollNext`：自動で次スライドに進める処理
+- `triggerCheck`：チェックアイコンの一時表示処理
+
+### カスタムHooks: useResponsiveCarouselCount
+- 画面幅に応じて「表示枚数（visibleCount）」や「モバイル判定（isMobile）」を返すロジックをカスタムHooks化。
+- カルーセル本体（InfiniteCarousel）で呼び出し、SP/PCでのUI切り替えやスライド数の自動調整に利用。
+- このHooksを使うことで、レスポンシブ判定のロジックを他のコンポーネントでも再利用可能に。
 
 ---
 
