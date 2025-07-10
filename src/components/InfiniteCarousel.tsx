@@ -754,7 +754,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
           )}
         </div>
         {/* 現在のインデックス表示 */}
-        <div className="flex justify-center mt-4 md:mt-6">
+        <div className="flex flex-col items-center justify-center mt-4 md:mt-6">
           <span
             style={{
               fontSize: '1.0rem', // ここを1.1remから1.0remに変更
@@ -803,6 +803,25 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
               }
             </span>
           </span>
+          {/* Reloadボタン追加 */}
+          <button
+            style={{
+              marginTop: '0.5em',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              background: '#f1f5f9',
+              border: '1.5px solid #d1d5db',
+              borderRadius: '0.8rem',
+              padding: '0.3em 1.2em',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
+              transition: 'background 0.2s',
+              color: '#222', // 文字色を濃く
+            }}
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </button>
         </div>
       </div>
     </div>
