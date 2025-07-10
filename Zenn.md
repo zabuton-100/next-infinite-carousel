@@ -6,7 +6,7 @@ topics: ["React", "Next.js", "フロントエンド", "UI", "Hooks"]
 published: false
 ---
 
-# 🚀 ライブラリなしで無限カルーセルを作ってみた話（Next.js + React）
+# 🎠 ライブラリなしで無限カルーセルを作ってみた話（Next.js + React）
 
 > Swiperを使えばすぐできる。でも「使わずに作ったら何が大変なのか？」を試してみたら、学びが盛りだくさんだった。
 
