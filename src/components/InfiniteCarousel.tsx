@@ -133,7 +133,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
     // なければ新規生成
     const visibleCountInit = 3; // デフォルト
-    const emojiArrayLength = visibleCountInit + preloadCount;
+    const emojiArrayLength = Math.max(visibleCountInit + preloadCount, 10 * 3); // PC時はtotalSlides(30)以上
     const set = new Set<string>();
     const arr = [];
     for (let i = 0; i < emojiArrayLength; i++) {
