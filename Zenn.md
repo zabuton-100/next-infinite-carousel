@@ -30,21 +30,30 @@ published: false
 
 ---
 
-## 📦 作ったもの
+## 📦 作ったもの：ライブラリゼロで実現した“学べるカルーセル”
 
-- フル自作の無限カルーセル
-- Swiper風の挙動（スワイプ・オートスクロール・無限ループ）
-- Tailwind CSS でデザイン調整
-- 9種類の絵文字カードをスライド表示（内部的には30枚分ループ描画）
-- 以下URLにて Vercel で公開中
+- 💡 **外部UIライブラリを一切使わず**、Next.js + React だけで構築した「無限カルーセル」コンポーネント
+- 🎠 **Swiper風のUX**（スワイプ / オートスクロール / 無限ループ）を**自力で再現**
+- 🖌️ **Tailwind CSS活用**による柔軟で直感的なデザイン調整
+- 🎴 9種類の絵文字カードを**ランダム生成・両面flip付き**でスライド表示  
+　※実際の描画は仮想的に**30枚相当をループ再配置**
+- 🧠 状態管理・アニメーション・レスポンシブ対応など**React HooksとNext.js設計の学びが詰まった実践作**
+- 📱 タッチ＆マウス両対応、モバイル/PCレスポンシブ切り替え
+- 🔍 ソースは**完全オープンソース**、技術ブログと連携して構造も解説中
 
-https://next-infinite-carousel.vercel.app/demo/carousel
+🌐 **実際に動かしてみたい方はこちらから👇**
+
+👉 [デモを開く（Vercelデプロイ）](https://next-infinite-carousel.vercel.app/demo/carousel)
 
 ---
 
-## 👨‍💻 コードはこちら
+## 👨‍💻 ソースコードはこちら（GitHub）
 
-GitHub: [zabuton-100/next-infinite-carousel](https://github.com/zabuton-100/next-infinite-carousel)
+本プロジェクトはGitHubで公開しています。Next.js（App Router構成）・React 19・TypeScript・Tailwind CSSを組み合わせたモダン構成です。
+
+🔗 [zabuton-100/next-infinite-carousel](https://github.com/zabuton-100/next-infinite-carousel)
+
+💬 気になる点や改善アイデアがあれば、Issue・PR・Zennコメントなどでお気軽にどうぞ！
 
 ---
 
