@@ -84,7 +84,7 @@ type EmojiPair = {
 };
 
 interface InfiniteCarouselProps {
-  emojiPairsArray: EmojiPair[];
+  emojiPairsArray?: EmojiPair[]; // 省略可
 }
 ```
 
