@@ -34,25 +34,6 @@ function getRandomEmoji() {
   return emoji;
 }
 
-function getUniqueRandomEmojiPair(existingEmojis: Set<string>) {
-  let emoji = getRandomEmoji();
-  let tries = 0;
-  while (existingEmojis.has(emoji) && tries < 50) {
-    emoji = getRandomEmoji();
-    tries++;
-  }
-  return {
-    front: {
-      emoji,
-      color: getRandomFromArray(pastelColors),
-    },
-    back: {
-      emoji: getRandomEmoji(),
-      color: getRandomFromArray(darkColors),
-    },
-  };
-}
-
 export default function CarouselServer() {
   // emojiPairsArrayの初期生成をやめ、空配列を渡す
   return <InfiniteCarousel emojiPairsArray={[]} />;
