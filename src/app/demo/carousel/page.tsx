@@ -2,7 +2,7 @@ import CarouselServer from "../../../components/CarouselServer";
 import Clock from "./Clock";
 
 export const metadata = {
-  title: "Emoji",
+  title: "Emoji Carousel",
 };
 
 export default function CarouselDemo() {
