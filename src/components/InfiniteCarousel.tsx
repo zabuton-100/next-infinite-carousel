@@ -797,8 +797,21 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
               {
                 (() => {
                   const centerOffset = Math.floor(visibleCountNum / 2);
-                  const centerIndex = currentIndex + centerOffset;
-                  return `現在表示中: ${((centerIndex - 1 + imageCount) % imageCount) + 1} / ${imageCount}`;
+                  let shownIndex;
+                  let totalCount;
+                  if (!isMobile) {
+                    // PC時: 中央カードの番号を1セット分で表示
+                    const setLength = emojiPairsArray.length / 3; // 1セット分の枚数
+                    const centerIndex = currentIndex + centerOffset;
+                    shownIndex = ((centerIndex % setLength) + setLength) % setLength + 1;
+                    totalCount = setLength;
+                  } else {
+                    // モバイル時: currentIndexを1セット分で表示
+                    const setLength = emojiPairsArray.length / 3;
+                    shownIndex = ((currentIndex % setLength) + setLength) % setLength + 1;
+                    totalCount = setLength;
+                  }
+                  return `現在表示中: ${shownIndex} / ${totalCount}`;
                 })()
               }
             </span>
