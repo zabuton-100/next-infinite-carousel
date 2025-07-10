@@ -265,8 +265,14 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     setIsAnimatingAll(true);
     setFlippedIndexes(prev => {
       const newSet = new Set(prev);
-      for (let i = 0; i < visibleCountNum; i++) {
-        newSet.add(currentIndex + i);
+      if (isMobile) {
+        for (let i = -1; i <= 1; i++) {
+          newSet.add(currentIndex + i);
+        }
+      } else {
+        for (let i = 0; i < visibleCountNum; i++) {
+          newSet.add(currentIndex + i);
+        }
       }
       return newSet;
     });
@@ -294,16 +300,28 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
         // --- 明るい面に戻す前にアニメーション用stateに追加 ---
         setFlippingBackIndexes(prev => {
           const newSet = new Set(prev);
-          for (let i = 0; i < visibleCountNum; i++) {
-            newSet.add(wrappedIndex + i);
+          if (isMobile) {
+            for (let i = -1; i <= 1; i++) {
+              newSet.add(wrappedIndex + i);
+            }
+          } else {
+            for (let i = 0; i < visibleCountNum; i++) {
+              newSet.add(wrappedIndex + i);
+            }
           }
           return newSet;
         });
         // 明るい面に戻す
         setFlippedIndexes(prev => {
           const newSet = new Set(prev);
-          for (let i = 0; i < visibleCountNum; i++) {
-            newSet.delete(wrappedIndex + i);
+          if (isMobile) {
+            for (let i = -1; i <= 1; i++) {
+              newSet.delete(wrappedIndex + i);
+            }
+          } else {
+            for (let i = 0; i < visibleCountNum; i++) {
+              newSet.delete(wrappedIndex + i);
+            }
           }
           return newSet;
         });
@@ -311,8 +329,14 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
         setTimeout(() => {
           setFlippingBackIndexes(prev => {
             const newSet = new Set(prev);
-            for (let i = 0; i < visibleCountNum; i++) {
-              newSet.delete(wrappedIndex + i);
+            if (isMobile) {
+              for (let i = -1; i <= 1; i++) {
+                newSet.delete(wrappedIndex + i);
+              }
+            } else {
+              for (let i = 0; i < visibleCountNum; i++) {
+                newSet.delete(wrappedIndex + i);
+              }
             }
             return newSet;
           });
