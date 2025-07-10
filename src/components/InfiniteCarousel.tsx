@@ -116,7 +116,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     updateWidth();
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
-  }, [isMobile]);
+  }, [isMobile, currentIndex]);
 
   // 初期位置を中央に（初回はアニメーションなし）
   useEffect(() => {
@@ -145,7 +145,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
       setTranslateX(-itemWidth * currentIndex + paddingOffset);
       console.log('[NotFirstRender:PC]', { translateX: -itemWidth * currentIndex + paddingOffset, itemWidth });
     }
-  }, [itemWidth, isMobile, visibleCount]);
+  }, [itemWidth, isMobile, visibleCount, currentIndex]);
 
   // 表示中の要素番号をログ出力
   useEffect(() => {
@@ -161,7 +161,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     }
     const cardCount = visibleCards.length;
     console.log(getLogTimestamp(), '表示状態:', { shownIndex, cardCount, visibleCards, isMobile, translateX, noTransition });
-  }, [currentIndex, visibleCountNum, imageCount, isMobile, visibleCount]);
+  }, [currentIndex, visibleCountNum, imageCount, isMobile, visibleCount, noTransition, translateX]);
 
   // 表示中・preload絵文字のconsole出力
   useEffect(() => {
@@ -220,7 +220,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     if (visibleCards.length === 0) {
       console.warn('[Carousel][警告] DOM上でvisibleなカードが0枚です！', { currentIndex, visibleCount, isMobile });
     }
-  }, [currentIndex, visibleCount, isMobile, emojiPairsArray]);
+  }, [currentIndex, visibleCount, isMobile, emojiPairsArray, noTransition, translateX]);
 
   // 表示中の3枚の絵文字でタイトルを動的に変更
   useEffect(() => {

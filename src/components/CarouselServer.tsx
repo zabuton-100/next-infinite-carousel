@@ -1,6 +1,6 @@
 import InfiniteCarousel from "./InfiniteCarousel";
+// @ts-expect-error: 型定義が無いためanyでimport
 import emojiDictionary from "emoji-dictionary";
-import unicodeEmojiJsonRaw from "unicode-emoji-json";
 
 const pastelColors = [
   '#ffd1dc', '#ffe4b5', '#b5ead7', '#c7ceea', '#fdfd96', '#baffc9', '#bae1ff', '#fff1ba', '#ffb7b2', '#e2f0cb',
@@ -12,7 +12,6 @@ const darkColors = [
   '#1b1b2f', '#162447', '#1f4068', '#283655', '#3a3a3a', '#232931', '#393e46', '#222f3e', '#2d3436', '#353b48',
   '#2f3640', '#1e272e', '#485460', '#3d3d5c', '#2c3e50', '#22313f', '#1a1a40', '#232b2b', '#2e2e38', '#22223b',
 ];
-const unicodeEmojiJson = unicodeEmojiJsonRaw as Record<string, { group?: string }>;
 
 function getRandomFromArray<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
