@@ -101,7 +101,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
   const [flippingBackIndexes, setFlippingBackIndexes] = useState<Set<number>>(new Set());
 
   // ページタイトル（h1と同じ文字列）
-  const PAGE_TITLE = "Carousel Demo";
+  const PAGE_TITLE = "Emoji Carousel";
 
   // 画像1枚分の横幅を取得
   useEffect(() => {
@@ -237,7 +237,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
         emojis.push(emojiPairsArray[idx].front.emoji);
       }
     }
-    document.title = `Carousel ( ${emojis.join(' - ')} )`;
+    document.title = `Emoji ( ${emojis.join(' - ')} )`;
   }, [currentIndex, visibleCount, isMobile, emojiPairsArray]);
 
   // 初期タイトルをh1と同じにする
@@ -516,6 +516,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
               disabled={isAnimating}
             >
               <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* 左向き矢印に戻す */}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -527,6 +528,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
               disabled={isAnimating}
             >
               <svg className="w-3 h-3 md:w-6 md:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* 左向き矢印に戻す */}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -573,10 +575,18 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
                       <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" className="text-green-500 animate-fade-pop" style={{opacity: 0.1}}>
                           <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="white" fillOpacity="0.7"/>
-                          {(lastScrollDirection === 'swipe-right' || lastScrollDirection === 'button-left') ? (
-                            <path d="M40 32H24M28 24l-8 8 8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          ) : (
+                          {lastScrollDirection === 'button-left' ? (
+                            // ボタン左: 右向き
                             <path d="M24 32h16M36 24l8 8-8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          ) : lastScrollDirection === 'button-right' ? (
+                            // ボタン右: 左向き
+                            <path d="M40 32H24M28 24l-8 8 8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          ) : lastScrollDirection === 'swipe-left' ? (
+                            // スワイプ左: 右向き（スクロール方向と揃える）
+                            <path d="M24 32h16M36 24l8 8-8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          ) : (
+                            // スワイプ右: 左向き（スクロール方向と揃える）
+                            <path d="M40 32H24M28 24l-8 8 8 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                           )}
                         </svg>
                       </div>
@@ -617,6 +627,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
                 disabled={isAnimating}
               >
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* 右向き矢印に戻す */}
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -631,6 +642,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
               disabled={isAnimating}
             >
               <svg className="w-3 h-3 md:w-6 md:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* 右向き矢印に戻す */}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
