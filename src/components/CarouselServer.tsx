@@ -54,16 +54,6 @@ function getUniqueRandomEmojiPair(existingEmojis: Set<string>) {
 }
 
 export default function CarouselServer() {
-  // サーバー側で初期配列を生成
-  const preloadCount = 6; // PC基準で最大値
-  const visibleCount = 3; // デフォルト
-  const emojiArrayLength = visibleCount + preloadCount;
-  const set = new Set<string>();
-  const arr = [];
-  for (let i = 0; i < emojiArrayLength; i++) {
-    const pair = getUniqueRandomEmojiPair(set);
-    set.add(pair.front.emoji);
-    arr.push(pair);
-  }
-  return <InfiniteCarousel emojiPairsArray={arr} />;
+  // emojiPairsArrayの初期生成をやめ、空配列を渡す
+  return <InfiniteCarousel emojiPairsArray={[]} />;
 } 
