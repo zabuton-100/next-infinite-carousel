@@ -33,6 +33,12 @@ https://next-infinite-carousel.vercel.app/demo/carousel
 
 ---
 
+## 👨‍💻 コードはこちら
+
+GitHub: [zabuton-100/next-infinite-carousel](https://github.com/zabuton-100/next-infinite-carousel)
+
+---
+
 ## 🛠 技術スタック
 
 - Next.js 15 (App Router)
@@ -206,12 +212,6 @@ useEffect(() => {
 - 画面幅に応じて「表示枚数（visibleCount）」や「モバイル判定（isMobile）」を返すロジックをカスタムHooks化。
 - カルーセル本体（InfiniteCarousel）で呼び出し、SP/PCでのUI切り替えやスライド数の自動調整に利用。
 - このHooksを使うことで、レスポンシブ判定のロジックを他のコンポーネントでも再利用可能に。
-
----
-
-## 👨‍💻 コードはこちら
-
-GitHub: [zabuton-100/next-infinite-carousel](https://github.com/zabuton-100/next-infinite-carousel)
 
 ---
 
