@@ -360,7 +360,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray }) 
     if (isAutoScrollStopped || isMobile === undefined || visibleCount === undefined) return;
     autoScrollIntervalRef.current = setInterval(() => {
       handleAutoScrollNext();
-    }, 1000);
+    }, 1500); // 1.5倍に変更（1000ms → 1500ms）
     console.log('[Carousel] 自動スクロール開始');
     return () => {
       if (autoScrollIntervalRef.current) clearInterval(autoScrollIntervalRef.current);
