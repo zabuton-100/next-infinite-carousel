@@ -1016,6 +1016,242 @@ const UnmemoizedComponent: React.FC<Props> = ({ children }) => {
 
 ---
 
+## params オブジェクトの詳細解説
+
+### 🎯 params とは？
+
+`params` は、Next.js App Routerで動的ルーティングを使用する際に、URLパスから抽出されたパラメータを含むオブジェクトです。
+
+### 📦 params オブジェクトの構造
+
+```tsx
+// params オブジェクトの型定義
+interface Params {
+  [key: string]: string | string[];
+}
+```
+
+**特徴：**
+- **キー**: 動的セグメントの名前（`[id]` → `id`、`[slug]` → `slug`）
+- **値**: URLパスから抽出された文字列（または文字列配列）
+- **自動生成**: Next.jsがファイル構造から自動的に生成
+
+### 🔍 params の生成原理
+
+#### 1. **ファイル構造から params が生成される**
+
+```
+app/
+└── users/
+    └── [id]/
+        └── page.tsx
+```
+
+**この構造の場合：**
+- URL: `/users/123`
+- 生成される params: `{ id: "123" }`
+
+#### 2. **複数の動的セグメント**
+
+```
+app/
+└── products/
+    └── [category]/
+        └── [productId]/
+            └── page.tsx
+```
+
+**この構造の場合：**
+- URL: `/products/electronics/456`
+- 生成される params: `{ category: "electronics", productId: "456" }`
+
+#### 3. **キャッチオールルート**
+
+```
+app/
+└── shop/
+    └── [[...slug]]/
+        └── page.tsx
+```
+
+**この構造の場合：**
+- URL: `/shop/electronics/phones/123`
+- 生成される params: `{ slug: ["electronics", "phones", "123"] }`
+
+### 🎯 params の受け取り方
+
+#### 1. **基本的な受け取り方**
+
+```tsx
+// app/users/[id]/page.tsx
+export default function UserPage({ params }: { params: { id: string } }) {
+  console.log('params:', params); // { id: "123" }
+  
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>User ID: {params.id}</p>
+    </div>
+  );
+}
+```
+
+#### 2. **型安全な受け取り方**
+
+```tsx
+// app/users/[id]/page.tsx
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function UserPage({ params }: PageProps) {
+  const { id } = params;
+  
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>User ID: {id}</p>
+    </div>
+  );
+}
+```
+
+#### 3. **複数の動的セグメント**
+
+```tsx
+// app/products/[category]/[productId]/page.tsx
+interface PageProps {
+  params: {
+    category: string;
+    productId: string;
+  };
+}
+
+export default function ProductPage({ params }: PageProps) {
+  const { category, productId } = params;
+  
+  return (
+    <div>
+      <h1>Product Details</h1>
+      <p>Category: {category}</p>
+      <p>Product ID: {productId}</p>
+    </div>
+  );
+}
+```
+
+### 🔧 params の実践的な使用例
+
+#### 1. **データフェッチング**
+
+```tsx
+// app/users/[id]/page.tsx
+async function getUser(id: string) {
+  const res = await fetch(`https://api.example.com/users/${id}`);
+  if (!res.ok) throw new Error('User not found');
+  return res.json();
+}
+
+export default async function UserPage({ params }: { params: { id: string } }) {
+  const user = await getUser(params.id);
+  
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+}
+```
+
+#### 2. **バリデーション**
+
+```tsx
+// app/users/[id]/page.tsx
+export default async function UserPage({ params }: { params: { id: string } }) {
+  // IDが数値かチェック
+  if (!/^\d+$/.test(params.id)) {
+    return <div>Invalid user ID</div>;
+  }
+  
+  const user = await getUser(params.id);
+  
+  return (
+    <div>
+      <h1>{user.name}</h1>
+    </div>
+  );
+}
+```
+
+#### 3. **メタデータの生成**
+
+```tsx
+// app/blog/[slug]/page.tsx
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  
+  return {
+    title: post.title,
+    description: post.excerpt,
+  };
+}
+
+export default async function BlogPost({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <div>{post.content}</div>
+    </article>
+  );
+}
+```
+
+### ⚠️ params の注意点
+
+#### 1. **文字列型**
+```tsx
+// params の値は常に文字列
+export default function Page({ params }: { params: { id: string } }) {
+  // params.id は文字列型
+  const numericId = parseInt(params.id, 10); // 数値に変換が必要
+}
+```
+
+#### 2. **存在しない場合の処理**
+```tsx
+// キャッチオールルートの場合
+export default function Page({ params }: { params: { slug?: string[] } }) {
+  if (!params.slug) {
+    return <div>Home page</div>;
+  }
+  
+  return <div>Path: {params.slug.join('/')}</div>;
+}
+```
+
+#### 3. **型安全性**
+```tsx
+// TypeScriptで型を明示的に定義
+interface PageProps {
+  params: {
+    id: string;
+    category?: string; // オプショナル
+  };
+}
+
+export default function Page({ params }: PageProps) {
+  // TypeScriptが型チェックを提供
+  return <div>ID: {params.id}</div>;
+}
+```
+
+---
+
 ## params.id とクエリパラメータの違い
 
 ### 🎯 基本的な違い
@@ -2908,3 +3144,475 @@ InfiniteCarouselの解読方法：
 6. **段階的に理解**: 一度に全てを理解しようとせず、部分から全体へ
 
 このアプローチで、複雑なコンポーネントも理解しやすくなります！🚀
+
+---
+
+## React で addEventListener を使うケース
+
+### 🎯 基本的な考え方
+
+Reactでは通常、JSXのイベントハンドラー（`onClick`、`onMouseDown`など）を使用しますが、以下のケースでは`addEventListener`が必要になります：
+
+### 📝 使用するケース
+
+#### 1. **グローバルイベント（window, document）**
+
+**理由**: JSXでは`window`や`document`のイベントを直接監視できない
+
+```tsx
+function GlobalKeyListener() {
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log('Escape key pressed');
+      }
+    };
+
+    // windowのキーイベントを監視
+    window.addEventListener('keydown', handleKeyPress);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, []);
+
+  return <div>Press Escape key</div>;
+}
+```
+
+#### 2. **マウスドラッグ（マウスが要素外に出た場合）**
+
+**理由**: ドラッグ中にマウスが要素外に出ると、要素のイベントが発生しなくなる
+
+```tsx
+function DraggableComponent() {
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        console.log('Mouse position:', e.clientX, e.clientY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    // ドラッグ中はグローバルイベントを監視
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleMouseDown = () => {
+    setIsDragging(true);
+  };
+
+  return (
+    <div 
+      onMouseDown={handleMouseDown}
+      style={{ 
+        width: 100, 
+        height: 100, 
+        backgroundColor: 'blue',
+        cursor: 'grab'
+      }}
+    >
+      Drag me
+    </div>
+  );
+}
+```
+
+#### 3. **サードパーティライブラリとの統合**
+
+**理由**: 外部ライブラリがDOM要素を直接操作する場合
+
+```tsx
+function ThirdPartyIntegration() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // サードパーティライブラリの初期化
+    const thirdPartyWidget = new ThirdPartyWidget(containerRef.current);
+    
+    // ライブラリが提供するイベントリスナー
+    const handleWidgetEvent = (data: any) => {
+      console.log('Widget event:', data);
+    };
+
+    thirdPartyWidget.addEventListener('customEvent', handleWidgetEvent);
+
+    return () => {
+      thirdPartyWidget.removeEventListener('customEvent', handleWidgetEvent);
+      thirdPartyWidget.destroy();
+    };
+  }, []);
+
+  return <div ref={containerRef} />;
+}
+```
+
+#### 4. **動的に作成された要素**
+
+**理由**: 動的に作成された要素にはJSXのイベントハンドラーを直接設定できない
+
+```tsx
+function DynamicElementHandler() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // 動的に要素を作成
+    const dynamicElement = document.createElement('button');
+    dynamicElement.textContent = 'Dynamic Button';
+    containerRef.current.appendChild(dynamicElement);
+
+    // 動的要素にイベントリスナーを追加
+    const handleClick = () => {
+      console.log('Dynamic button clicked');
+    };
+
+    dynamicElement.addEventListener('click', handleClick);
+
+    return () => {
+      dynamicElement.removeEventListener('click', handleClick);
+      dynamicElement.remove();
+    };
+  }, []);
+
+  return <div ref={containerRef} />;
+}
+```
+
+#### 5. **パフォーマンス最適化（イベント委譲）**
+
+**理由**: 大量の要素がある場合、個別のイベントハンドラーではなく委譲を使用
+
+```tsx
+function EventDelegation() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      
+      // クリックされた要素の種類に応じて処理
+      if (target.matches('.item')) {
+        console.log('Item clicked:', target.dataset.id);
+      } else if (target.matches('.delete-btn')) {
+        console.log('Delete clicked:', target.dataset.id);
+      }
+    };
+
+    containerRef.current.addEventListener('click', handleClick);
+
+    return () => {
+      containerRef.current?.removeEventListener('click', handleClick);
+    };
+  }, []);
+
+  return (
+    <div ref={containerRef}>
+      {Array.from({ length: 1000 }, (_, i) => (
+        <div key={i} className="item" data-id={i}>
+          Item {i}
+          <button className="delete-btn" data-id={i}>Delete</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### 🎯 あなたのプロジェクトでの使用例
+
+InfiniteCarouselでは、マウスドラッグの際に`addEventListener`を使用しています：
+
+```tsx
+// ドラッグ開始
+const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+  // ... 他の処理 ...
+  
+  if (!('touches' in e)) {
+    // マウスイベントの場合のみグローバルイベントリスナーを追加
+    window.addEventListener('mousemove', handleDragMove as EventListener);
+    window.addEventListener('mouseup', handleDragEnd as EventListener);
+  }
+};
+
+// ドラッグ終了
+const handleDragEnd = () => {
+  // ... 他の処理 ...
+  
+  if (!dragState.current.isTouch) {
+    // マウスイベントの場合のみグローバルイベントリスナーを削除
+    window.removeEventListener('mousemove', handleDragMove as EventListener);
+    window.removeEventListener('mouseup', handleDragEnd as EventListener);
+  }
+};
+```
+
+**なぜ必要か？**
+- ドラッグ中にマウスが要素外に出ると、要素の`onMouseMove`や`onMouseUp`が発生しなくなる
+- グローバルイベントリスナーを使用することで、マウスがどこにあってもイベントを捕捉できる
+
+### 🔧 実践的なパターン
+
+#### 1. **カスタムフックでの抽象化**
+
+```tsx
+function useGlobalEventListener(
+  eventType: string,
+  handler: EventListener,
+  element: EventTarget = window
+) {
+  useEffect(() => {
+    element.addEventListener(eventType, handler);
+    
+    return () => {
+      element.removeEventListener(eventType, handler);
+    };
+  }, [eventType, handler, element]);
+}
+
+// 使用例
+function Component() {
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      console.log('Escape pressed');
+    }
+  }, []);
+
+  useGlobalEventListener('keydown', handleKeyPress);
+
+  return <div>Press Escape</div>;
+}
+```
+
+#### 2. **条件付きイベントリスナー**
+
+```tsx
+function ConditionalEventListener() {
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    if (!isActive) return; // 条件が満たされない場合は何もしない
+
+    const handleScroll = () => {
+      console.log('Scrolling...');
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isActive]); // isActiveが変更された時に再実行
+
+  return (
+    <div>
+      <button onClick={() => setIsActive(!isActive)}>
+        {isActive ? 'Disable' : 'Enable'} Scroll Listener
+      </button>
+    </div>
+  );
+}
+```
+
+#### 3. **複数のイベントタイプ**
+
+```tsx
+function MultipleEventTypes() {
+  useEffect(() => {
+    const handleResize = () => {
+      console.log('Window resized');
+    };
+
+    const handleOrientationChange = () => {
+      console.log('Orientation changed');
+    };
+
+    const handleVisibilityChange = () => {
+      console.log('Visibility changed:', document.visibilityState);
+    };
+
+    // 複数のイベントを同時に監視
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  return <div>Multiple event listeners</div>;
+}
+```
+
+### ⚠️ 注意点とベストプラクティス
+
+#### 1. **クリーンアップの重要性**
+
+```tsx
+// 良い例: クリーンアップを必ず実行
+useEffect(() => {
+  const handleEvent = () => console.log('Event');
+  window.addEventListener('event', handleEvent);
+  
+  return () => {
+    window.removeEventListener('event', handleEvent);
+  };
+}, []);
+
+// 悪い例: クリーンアップなし（メモリリークの原因）
+useEffect(() => {
+  const handleEvent = () => console.log('Event');
+  window.addEventListener('event', handleEvent);
+  // クリーンアップ関数がない！
+}, []);
+```
+
+#### 2. **依存配列の管理**
+
+```tsx
+function DependenciesExample() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        setCount(count + 1); // countを使用
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [count]); // countを依存配列に含める
+
+  return <div>Count: {count}</div>;
+}
+```
+
+#### 3. **パフォーマンス最適化**
+
+```tsx
+function OptimizedEventListener() {
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      console.log('Escape pressed');
+    }
+  }, []); // 依存関係がない場合は空配列
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [handleKeyPress]); // handleKeyPressを依存配列に含める
+
+  return <div>Optimized listener</div>;
+}
+```
+
+### 📊 使用ケースのまとめ
+
+| ケース | 理由 | 例 |
+|--------|------|-----|
+| **グローバルイベント** | JSXで直接監視できない | window.keydown, document.visibilitychange |
+| **マウスドラッグ** | 要素外でのイベント捕捉 | ドラッグ中のmousemove, mouseup |
+| **サードパーティ統合** | 外部ライブラリとの連携 | チャートライブラリのイベント |
+| **動的要素** | JSXイベントハンドラーが設定できない | 動的に作成されたボタン |
+| **イベント委譲** | パフォーマンス最適化 | 大量の要素のクリック処理 |
+
+### 🎯 まとめ
+
+Reactで`addEventListener`を使うケース：
+
+- ✅ **グローバルイベント**: window, documentのイベント
+- ✅ **マウスドラッグ**: 要素外でのイベント捕捉
+- ✅ **サードパーティ統合**: 外部ライブラリとの連携
+- ✅ **動的要素**: JSXで直接設定できない要素
+- ✅ **パフォーマンス最適化**: イベント委譲
+
+**重要なポイント:**
+- 必ずクリーンアップ関数を実装する
+- 依存配列を適切に管理する
+- パフォーマンスを考慮する
+- 必要最小限の使用に留める
+
+適切に使用することで、Reactの制約を超えた柔軟なイベント処理が可能になります！🚀
+
+---
+
+## slug（スラッグ）とは？
+
+### 🎯 定義
+
+**slug（スラッグ）** とは、
+「URLの一部として使われる、ページやリソースを一意に識別する短い文字列」のことです。
+
+- 通常は英数字・ハイフン（-）で構成される
+- 人間にも分かりやすく、SEOにも有利
+- データベースのIDやタイトルから自動生成されることが多い
+
+### 📝 例
+
+#### 1. ブログ記事のURL
+```
+https://example.com/blog/hello-world
+                        ↑
+                    これがslug
+```
+- この場合、`hello-world` がslugです。
+
+#### 2. 商品ページのURL
+```
+https://shop.com/products/iphone-15-pro
+                             ↑
+                         これがslug
+```
+- 商品名やタイトルをもとに作られることが多いです。
+
+### 🔍 使い方（Next.js/Reactの場合）
+
+#### 動的ルーティングでのslug
+```tsx
+// app/blog/[slug]/page.tsx
+export default function BlogPost({ params }: { params: { slug: string } }) {
+  // params.slug でURLのslug部分を取得できる
+  // 例: /blog/hello-world → params.slug === 'hello-world'
+}
+```
+
+#### データベース例
+| id  | title                | slug          |
+|-----|----------------------|--------------|
+| 1   | はじめてのReact      | hajimete-react |
+| 2   | Next.js入門          | nextjs-intro  |
+| 3   | スラッグとは？        | what-is-slug  |
+
+### 🎯 まとめ
+
+- **slug**は「URLの一部として使う、短くて分かりやすい識別子」
+- **SEOやユーザビリティ向上**のために使われる
+- **Next.jsの動的ルーティング**では `[slug]` で受け取ることが多い
