@@ -3980,4 +3980,34 @@ Tailwind CSSはユーティリティクラスを組み合わせて使うため�
 
 ---
 
+## TypeScriptで頻繁に使われる「|」記号（ユニオン型）について
+
+- 「|」は「ユニオン型（Union Type）」と呼ばれ、複数の型のいずれかを許容することを意味します。
+- 例：
+  - `let value: string | number;` → valueは「string型」または「number型」を代入できる。
+  - `type Status = 'success' | 'error' | 'loading';` → Status型は3つの文字列リテラルのどれか。
+- Reactのpropsや関数の引数など、柔軟に型を許容したいときによく使われます。
+- ユニオン型を使うことで、型安全性を保ちつつ、複数のパターンに対応できます。
+
+---
+
+## TypeScriptの「interface」について
+
+- `interface`は「オブジェクトの形（構造）」を型として定義するためのTypeScriptの記法です。
+- どんなプロパティや型を持つかを事前に決めておき、型安全にオブジェクトを扱うことができます。
+- 例：
+  ```typescript
+  interface User {
+    id: number;
+    name: string;
+    isAdmin?: boolean; // ?は省略可能（オプショナル）
+  }
+
+  const user1: User = { id: 1, name: "Taro" };
+  ```
+- Reactのpropsの型定義や、複雑なデータ構造の型付けによく使われます。
+- `type`との違いは細かくありますが、基本的には「オブジェクトの型を定義するもの」と覚えておけばOKです。
+
+---
+
 </rewritten_file>
