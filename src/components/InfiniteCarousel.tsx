@@ -171,6 +171,15 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   // ページタイトル（h1と同じ文字列）
   const PAGE_TITLE = "Emoji Carousel";
 
+  // イベントリスナーのクリーンアップ用useEffect
+  useEffect(() => {
+    return () => {
+      // コンポーネントのアンマウント時にイベントリスナーを確実に削除
+      window.removeEventListener('mousemove', handleDragMove as EventListener);
+      window.removeEventListener('mouseup', handleDragEnd as EventListener);
+    };
+  }, []); // 空の依存配列でマウント時のみ実行
+
   // 画像1枚分の横幅を取得
   useEffect(() => {
     const updateWidth = () => {

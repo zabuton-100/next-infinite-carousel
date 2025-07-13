@@ -295,76 +295,279 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 ```
 
-### 🎯 App Routerの利点
+---
 
-#### 1. **パフォーマンス向上**
-- サーバーコンポーネントによる初期ロードの高速化
-- 自動的なコード分割
-- 最適化されたバンドルサイズ
+## 動的ルーティング [id] の詳細解説
 
-#### 2. **開発体験の向上**
-- ファイルシステムベースの直感的なルーティング
-- 型安全なルートパラメータ
-- 統合されたレイアウトシステム
+### 🎯 動的ルーティングとは？
 
-#### 3. **SEO最適化**
-- サーバーサイドレンダリング
-- メタデータの動的生成
-- 構造化データのサポート
+動的ルーティングは、URLの一部が変数になるルーティング方式です。`[id]` のような角括弧で囲まれたフォルダ名やファイル名を使用することで、動的なパラメータを受け取ることができます。
 
-#### 4. **柔軟性**
-- ネストされたレイアウト
-- 条件付きレイアウト
-- 並列ルート
+### 📁 基本的な構造
 
-### 🔧 実践的な使用パターン
-
-#### 1. **ネストされたレイアウト**
 ```
 app/
-├── layout.tsx          # ルートレイアウト
-├── dashboard/
-│   ├── layout.tsx      # ダッシュボード専用レイアウト
-│   ├── page.tsx        # /dashboard
-│   └── settings/
-│       └── page.tsx    # /dashboard/settings
+├── users/
+│   ├── page.tsx           # /users (ユーザー一覧)
+│   └── [id]/
+│       └── page.tsx       # /users/123, /users/456 など
+├── posts/
+│   ├── page.tsx           # /posts (投稿一覧)
+│   └── [slug]/
+│       └── page.tsx       # /posts/hello-world, /posts/my-post など
+└── products/
+    ├── page.tsx           # /products (商品一覧)
+    └── [category]/
+        └── [productId]/
+            └── page.tsx   # /products/electronics/123
 ```
 
-#### 2. **条件付きレイアウト**
+### 🔍 動的ルーティングの種類
+
+#### 1. **単一の動的セグメント**
 ```tsx
-// app/layout.tsx
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// app/users/[id]/page.tsx
+export default function UserPage({ params }: { params: { id: string } }) {
   return (
-    <html>
-      <body>
-        <ConditionalHeader />
-        {children}
-        <ConditionalFooter />
-      </body>
-    </html>
+    <div>
+      <h1>User Profile</h1>
+      <p>User ID: {params.id}</p>
+    </div>
   );
 }
 ```
 
-#### 3. **データフェッチング**
-```tsx
-// app/posts/page.tsx
-async function getPosts() {
-  const res = await fetch('https://api.example.com/posts');
-  return res.json();
-}
+**アクセス例：**
+- `/users/123` → `params.id = "123"`
+- `/users/abc` → `params.id = "abc"`
+- `/users/user-123` → `params.id = "user-123"`
 
-export default async function PostsPage() {
-  const posts = await getPosts();
+#### 2. **複数の動的セグメント**
+```tsx
+// app/products/[category]/[productId]/page.tsx
+export default function ProductPage({ 
+  params 
+}: { 
+  params: { category: string; productId: string } 
+}) {
+  return (
+    <div>
+      <h1>Product Details</h1>
+      <p>Category: {params.category}</p>
+      <p>Product ID: {params.productId}</p>
+    </div>
+  );
+}
+```
+
+**アクセス例：**
+- `/products/electronics/123` → `params.category = "electronics"`, `params.productId = "123"`
+- `/products/books/456` → `params.category = "books"`, `params.productId = "456"`
+
+#### 3. **オプショナルな動的セグメント**
+```tsx
+// app/shop/[[...slug]]/page.tsx
+export default function ShopPage({ 
+  params 
+}: { 
+  params: { slug?: string[] } 
+}) {
+  if (!params.slug) {
+    return <div>Shop Home</div>;
+  }
   
   return (
     <div>
-      {posts.map(post => (
-        <article key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.excerpt}</p>
-        </article>
-      ))}
+      <h1>Shop Section</h1>
+      <p>Path: {params.slug.join('/')}</p>
+    </div>
+  );
+}
+```
+
+**アクセス例：**
+- `/shop` → `params.slug = undefined`
+- `/shop/electronics` → `params.slug = ["electronics"]`
+- `/shop/electronics/phones` → `params.slug = ["electronics", "phones"]`
+
+### 🎯 実践的な使用例
+
+#### 1. **ユーザープロフィールページ**
+```tsx
+// app/users/[id]/page.tsx
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+}
+
+async function getUser(id: string): Promise<User> {
+  const res = await fetch(`https://api.example.com/users/${id}`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch user');
+  }
+  return res.json();
+}
+
+export default async function UserPage({ params }: { params: { id: string } }) {
+  const user = await getUser(params.id);
+  
+  return (
+    <div className="user-profile">
+      <img src={user.avatar} alt={user.name} className="avatar" />
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+}
+```
+
+#### 2. **ブログ記事ページ**
+```tsx
+// app/blog/[slug]/page.tsx
+interface Post {
+  slug: string;
+  title: string;
+  content: string;
+  publishedAt: string;
+}
+
+async function getPost(slug: string): Promise<Post> {
+  const res = await fetch(`https://api.example.com/posts/${slug}`);
+  if (!res.ok) {
+    throw new Error('Post not found');
+  }
+  return res.json();
+}
+
+export default async function BlogPost({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <time>{post.publishedAt}</time>
+      <div dangerouslySetInnerHTML={{ __html: post.content }} />
+    </article>
+  );
+}
+```
+
+#### 3. **商品詳細ページ**
+```tsx
+// app/products/[category]/[productId]/page.tsx
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  description: string;
+}
+
+async function getProduct(category: string, productId: string): Promise<Product> {
+  const res = await fetch(`https://api.example.com/products/${category}/${productId}`);
+  if (!res.ok) {
+    throw new Error('Product not found');
+  }
+  return res.json();
+}
+
+export default async function ProductPage({ 
+  params 
+}: { 
+  params: { category: string; productId: string } 
+}) {
+  const product = await getProduct(params.category, params.productId);
+  
+  return (
+    <div className="product-detail">
+      <h1>{product.name}</h1>
+      <p className="price">¥{product.price.toLocaleString()}</p>
+      <p className="category">{product.category}</p>
+      <p>{product.description}</p>
+    </div>
+  );
+}
+```
+
+### 🔧 動的ルーティングの高度な機能
+
+#### 1. **generateStaticParams（静的生成）**
+```tsx
+// app/posts/[slug]/page.tsx
+export async function generateStaticParams() {
+  const posts = await getPosts();
+  
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+
+export default async function PostPage({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  return <article>{/* 記事の内容 */}</article>;
+}
+```
+
+#### 2. **generateMetadata（動的メタデータ）**
+```tsx
+// app/users/[id]/page.tsx
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: { id: string } 
+}) {
+  const user = await getUser(params.id);
+  
+  return {
+    title: `${user.name} - User Profile`,
+    description: `Profile page for ${user.name}`,
+    openGraph: {
+      title: user.name,
+      images: [user.avatar],
+    },
+  };
+}
+```
+
+#### 3. **notFound関数（404ページ）**
+```tsx
+// app/users/[id]/page.tsx
+import { notFound } from 'next/navigation';
+
+export default async function UserPage({ params }: { params: { id: string } }) {
+  try {
+    const user = await getUser(params.id);
+    return <div>{/* ユーザー情報 */}</div>;
+  } catch (error) {
+    notFound(); // 404ページを表示
+  }
+}
+```
+
+### 🎯 型安全性
+
+#### TypeScriptでの型定義
+```tsx
+// app/users/[id]/page.tsx
+interface PageProps {
+  params: {
+    id: string;
+  };
+  searchParams: {
+    [key: string]: string | string[] | undefined;
+  };
+}
+
+export default async function UserPage({ params, searchParams }: PageProps) {
+  const { id } = params;
+  const { tab } = searchParams; // URLクエリパラメータ
+  
+  return (
+    <div>
+      <h1>User {id}</h1>
+      {tab && <p>Active tab: {tab}</p>}
     </div>
   );
 }
@@ -372,35 +575,851 @@ export default async function PostsPage() {
 
 ### ⚠️ 注意点とベストプラクティス
 
-#### 1. **サーバーコンポーネントの制限**
-- `useState`、`useEffect`などのHooksは使用不可
-- ブラウザ専用APIは使用不可
-- イベントハンドラーは使用不可
+#### 1. **パラメータの検証**
+```tsx
+// app/users/[id]/page.tsx
+export default async function UserPage({ params }: { params: { id: string } }) {
+  // IDが数値かどうかを検証
+  if (!/^\d+$/.test(params.id)) {
+    notFound();
+  }
+  
+  const user = await getUser(params.id);
+  return <div>{/* ユーザー情報 */}</div>;
+}
+```
 
-#### 2. **クライアントコンポーネントの使用**
-- インタラクティブな機能が必要な場合のみ使用
-- 必要最小限に留める
-- パフォーマンスを考慮
+#### 2. **エラーハンドリング**
+```tsx
+// app/users/[id]/page.tsx
+export default async function UserPage({ params }: { params: { id: string } }) {
+  try {
+    const user = await getUser(params.id);
+    return <div>{/* ユーザー情報 */}</div>;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'User not found') {
+      notFound();
+    }
+    throw error; // その他のエラーは再スロー
+  }
+}
+```
 
-#### 3. **ファイル命名規則**
-- `page.tsx`: ページコンポーネント
-- `layout.tsx`: レイアウトコンポーネント
-- `loading.tsx`: ローディングUI
-- `error.tsx`: エラーハンドリング
-- `not-found.tsx`: 404ページ
+#### 3. **パフォーマンス最適化**
+```tsx
+// app/posts/[slug]/page.tsx
+export const revalidate = 3600; // 1時間ごとに再検証
+
+export default async function PostPage({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  return <article>{/* 記事の内容 */}</article>;
+}
+```
 
 ### 🎯 まとめ
 
-App Routerは、Next.jsの新しいルーティングシステムで、以下の利点があります：
+動的ルーティング `[id]` の利点：
 
-- ✅ **直感的なファイルシステムベースルーティング**
-- ✅ **サーバーコンポーネントによるパフォーマンス向上**
-- ✅ **統合されたレイアウトシステム**
-- ✅ **SEO最適化**
-- ✅ **型安全性**
-- ✅ **開発体験の向上**
+- ✅ **柔軟なURL構造**: 動的なパラメータを受け取れる
+- ✅ **型安全性**: TypeScriptでパラメータの型を定義
+- ✅ **SEO最適化**: 静的生成とメタデータの動的生成
+- ✅ **エラーハンドリング**: 404ページの適切な表示
+- ✅ **パフォーマンス**: 静的生成による高速化
 
-あなたのプロジェクトでも、App Routerを活用することで、より効率的で保守性の高いアプリケーションを構築できます！🚀
+動的ルーティングを活用することで、より柔軟で保守性の高いアプリケーションを構築できます！🚀
+
+---
+
+## React.ReactNode と React.FC の違い
+
+### 🎯 基本的な違い
+
+`React.ReactNode` と `React.FC` は、**全く異なる概念**です：
+
+- **`React.ReactNode`**: **型**（TypeScriptの型定義）
+- **`React.FC`**: **型エイリアス**（関数コンポーネントの型）
+
+### 📝 React.ReactNode とは？
+
+`React.ReactNode` は、Reactでレンダリングできる値の型を表すTypeScriptの型です。
+
+#### 定義
+```tsx
+type ReactNode = 
+  | ReactElement
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ReactFragment
+  | ReactPortal
+  | Iterable<ReactNode>;
+```
+
+#### 使用例
+```tsx
+// childrenプロパティの型定義
+interface ContainerProps {
+  children: React.ReactNode;
+}
+
+const Container: React.FC<ContainerProps> = ({ children }) => {
+  return <div>{children}</div>;
+};
+
+// 使用例
+<Container>
+  <h1>Hello</h1>           {/* ReactElement */}
+  <p>World</p>             {/* ReactElement */}
+  {"Text"}                 {/* string */}
+  {42}                     {/* number */}
+  {true}                   {/* boolean */}
+  {null}                   {/* null */}
+  {undefined}              {/* undefined */}
+  {[1, 2, 3]}             {/* Iterable */}
+</Container>
+```
+
+### 🎣 React.FC とは？
+
+`React.FC` は、React Function Componentの型エイリアスです。
+
+#### 定義
+```tsx
+type FC<P = {}> = React.FunctionComponent<P>;
+
+interface FunctionComponent<P = {}> {
+  (props: PropsWithChildren<P>, context?: any): ReactElement<any, any> | null;
+  propTypes?: WeakValidationMap<P> | undefined;
+  contextTypes?: ValidationMap<any> | undefined;
+  defaultProps?: Partial<P> | undefined;
+  displayName?: string | undefined;
+}
+```
+
+#### 使用例
+```tsx
+interface ButtonProps {
+  text: string;
+  onClick: () => void;
+}
+
+const Button: React.FC<ButtonProps> = ({ text, onClick }) => {
+  return <button onClick={onClick}>{text}</button>;
+};
+```
+
+### 🔍 詳細な比較
+
+#### 1. **用途の違い**
+
+**React.ReactNode:**
+```tsx
+// プロパティの型定義
+interface LayoutProps {
+  children: React.ReactNode;  // 子要素の型
+  title: React.ReactNode;     // タイトルの型
+  content: React.ReactNode;   // コンテンツの型
+}
+
+const Layout = ({ children, title, content }: LayoutProps) => {
+  return (
+    <div>
+      <header>{title}</header>
+      <main>{content}</main>
+      <footer>{children}</footer>
+    </div>
+  );
+};
+```
+
+**React.FC:**
+```tsx
+// コンポーネントの型定義
+const Layout: React.FC<LayoutProps> = ({ children, title, content }) => {
+  return (
+    <div>
+      <header>{title}</header>
+      <main>{content}</main>
+      <footer>{children}</footer>
+    </div>
+  );
+};
+```
+
+#### 2. **childrenプロパティの扱い**
+
+**React.ReactNode（明示的に定義）:**
+```tsx
+interface CardProps {
+  title: string;
+  children: React.ReactNode;  // 明示的に定義
+}
+
+const Card = ({ title, children }: CardProps) => {
+  return (
+    <div className="card">
+      <h3>{title}</h3>
+      <div>{children}</div>
+    </div>
+  );
+};
+```
+
+**React.FC（自動的に追加）:**
+```tsx
+interface CardProps {
+  title: string;
+  // childrenは自動的に追加される
+}
+
+const Card: React.FC<CardProps> = ({ title, children }) => {
+  return (
+    <div className="card">
+      <h3>{title}</h3>
+      <div>{children}</div>
+    </div>
+  );
+};
+```
+
+#### 3. **戻り値の型**
+
+**React.ReactNode:**
+```tsx
+// 戻り値の型を明示的に指定
+const Greeting = (): React.ReactNode => {
+  return <h1>Hello, World!</h1>;
+};
+
+// または
+const Greeting = (): React.ReactElement => {
+  return <h1>Hello, World!</h1>;
+};
+```
+
+**React.FC:**
+```tsx
+// 戻り値の型は自動的に推論される
+const Greeting: React.FC = () => {
+  return <h1>Hello, World!</h1>;  // ReactElementを返す
+};
+```
+
+### 🎯 実践的な使用パターン
+
+#### 1. **React.ReactNodeの使用場面**
+
+**プロパティの型定義:**
+```tsx
+interface ModalProps {
+  isOpen: boolean;
+  title: React.ReactNode;      // タイトル（文字列やコンポーネント）
+  content: React.ReactNode;    // コンテンツ（何でもOK）
+  children: React.ReactNode;   // 子要素
+  onClose: () => void;
+}
+
+const Modal = ({ isOpen, title, content, children, onClose }: ModalProps) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="modal">
+      <div className="modal-header">
+        <h2>{title}</h2>
+        <button onClick={onClose}>×</button>
+      </div>
+      <div className="modal-content">
+        {content}
+      </div>
+      <div className="modal-footer">
+        {children}
+      </div>
+    </div>
+  );
+};
+```
+
+**使用例:**
+```tsx
+<Modal 
+  isOpen={true}
+  title={<span>🎉 Success!</span>}  // ReactElement
+  content="Operation completed successfully"  // string
+  onClose={() => setModalOpen(false)}
+>
+  <button>OK</button>  {/* ReactElement */}
+</Modal>
+```
+
+#### 2. **React.FCの使用場面**
+
+**コンポーネントの型定義:**
+```tsx
+interface UserCardProps {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  onEdit?: (userId: string) => void;
+  onDelete?: (userId: string) => void;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) => {
+  return (
+    <div className="user-card">
+      <img src={user.avatar || '/default-avatar.png'} alt={user.name} />
+      <h3>{user.name}</h3>
+      <p>{user.email}</p>
+      <div className="actions">
+        {onEdit && (
+          <button onClick={() => onEdit(user.id)}>Edit</button>
+        )}
+        {onDelete && (
+          <button onClick={() => onDelete(user.id)}>Delete</button>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+### 🔧 組み合わせて使用
+
+#### 1. **React.FC + React.ReactNode**
+```tsx
+interface LayoutProps {
+  header: React.ReactNode;
+  sidebar: React.ReactNode;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ header, sidebar, children, footer }) => {
+  return (
+    <div className="layout">
+      <header>{header}</header>
+      <div className="main-content">
+        <aside>{sidebar}</aside>
+        <main>{children}</main>
+      </div>
+      <footer>{footer}</footer>
+    </div>
+  );
+};
+```
+
+#### 2. **条件付きレンダリング**
+```tsx
+interface ConditionalRenderProps {
+  condition: boolean;
+  whenTrue: React.ReactNode;
+  whenFalse: React.ReactNode;
+}
+
+const ConditionalRender: React.FC<ConditionalRenderProps> = ({ 
+  condition, 
+  whenTrue, 
+  whenFalse 
+}) => {
+  return <div>{condition ? whenTrue : whenFalse}</div>;
+};
+
+// 使用例
+<ConditionalRender
+  condition={isLoggedIn}
+  whenTrue={<UserProfile user={user} />}
+  whenFalse={<LoginForm />}
+/>
+```
+
+### ⚠️ 注意点とベストプラクティス
+
+#### 1. **React.ReactNodeの注意点**
+```tsx
+// 良い例：型安全
+interface SafeProps {
+  children: React.ReactNode;
+}
+
+const SafeComponent = ({ children }: SafeProps) => {
+  return <div>{children}</div>;
+};
+
+// 悪い例：anyを使用
+interface UnsafeProps {
+  children: any;  // 型安全性を失う
+}
+```
+
+#### 2. **React.FCの注意点**
+```tsx
+// 良い例：childrenを明示的に型定義
+interface GoodProps {
+  children: React.ReactNode;
+}
+
+const GoodComponent: React.FC<GoodProps> = ({ children }) => {
+  return <div>{children}</div>;
+};
+
+// 悪い例：React.FCの暗黙的なchildrenに依存
+const BadComponent: React.FC = ({ children }) => {
+  return <div>{children}</div>;
+};
+```
+
+#### 3. **パフォーマンスの考慮**
+```tsx
+// 良い例：メモ化
+const MemoizedComponent: React.FC<Props> = React.memo(({ children }) => {
+  return <div>{children}</div>;
+});
+
+// 悪い例：不要な再レンダリング
+const UnmemoizedComponent: React.FC<Props> = ({ children }) => {
+  return <div>{children}</div>;
+};
+```
+
+### 📊 比較表
+
+| 項目 | React.ReactNode | React.FC |
+|------|----------------|----------|
+| **種類** | 型 | 型エイリアス |
+| **用途** | プロパティの型定義 | コンポーネントの型定義 |
+| **children** | 明示的に定義 | 自動的に追加 |
+| **戻り値** | 明示的に指定 | 自動推論 |
+| **使用場面** | プロパティ、変数 | コンポーネント定義 |
+| **型安全性** | 高い | 高い |
+
+### 🎯 まとめ
+
+**React.ReactNode:**
+- ✅ **柔軟性**: 様々な型の値を表現できる
+- ✅ **型安全性**: レンダリング可能な値のみを受け入れる
+- ✅ **明示性**: プロパティの型が明確
+
+**React.FC:**
+- ✅ **簡潔性**: コンポーネント定義が簡潔
+- ✅ **自動化**: childrenプロパティが自動追加
+- ✅ **開発体験**: IDEのサポートが充実
+
+**使い分けのポイント:**
+- **React.ReactNode**: プロパティの型定義、特にchildrenやレンダリング可能な値
+- **React.FC**: 関数コンポーネントの型定義
+
+両方を適切に組み合わせることで、型安全で保守性の高いReactアプリケーションを構築できます！🚀
+
+---
+
+## params.id とクエリパラメータの違い
+
+### 🎯 基本的な違い
+
+`params.id` とクエリパラメータは**全く異なる概念**です：
+
+- **`params.id`**: **動的ルーティングのパラメータ**（URLパス内の変数）
+- **クエリパラメータ**: **URLの末尾の?以降のパラメータ**
+
+### 📍 URLの構造
+
+```
+https://example.com/users/123?tab=profile&sort=name
+                    ↑        ↑
+                    │        └── クエリパラメータ
+                    └── 動的ルーティングパラメータ
+```
+
+### 🔍 詳細な比較
+
+#### 1. **params.id（動的ルーティングパラメータ）**
+
+**ファイル構造:**
+```
+app/
+└── users/
+    └── [id]/
+        └── page.tsx
+```
+
+**URL例:**
+- `/users/123` → `params.id = "123"`
+- `/users/abc` → `params.id = "abc"`
+- `/users/user-456` → `params.id = "user-456"`
+
+**コード例:**
+```tsx
+// app/users/[id]/page.tsx
+export default function UserPage({ params }: { params: { id: string } }) {
+  return (
+    <div>
+      <h1>User Profile</h1>
+      <p>User ID: {params.id}</p>
+    </div>
+  );
+}
+```
+
+#### 2. **クエリパラメータ（searchParams）**
+
+**ファイル構造:**
+```
+app/
+└── users/
+    └── page.tsx
+```
+
+**URL例:**
+- `/users?id=123&tab=profile` → `searchParams.id = "123"`, `searchParams.tab = "profile"`
+- `/users?sort=name&order=desc` → `searchParams.sort = "name"`, `searchParams.order = "desc"`
+
+**コード例:**
+```tsx
+// app/users/page.tsx
+export default function UsersPage({ 
+  searchParams 
+}: { 
+  searchParams: { [key: string]: string | string[] | undefined } 
+}) {
+  const { id, tab, sort } = searchParams;
+  
+  return (
+    <div>
+      <h1>Users</h1>
+      {id && <p>Filter by ID: {id}</p>}
+      {tab && <p>Active tab: {tab}</p>}
+      {sort && <p>Sort by: {sort}</p>}
+    </div>
+  );
+}
+```
+
+### 🎯 実際の使用例
+
+#### 1. **動的ルーティング + クエリパラメータの組み合わせ**
+
+**ファイル構造:**
+```
+app/
+└── users/
+    └── [id]/
+        └── page.tsx
+```
+
+**URL例:**
+- `/users/123?tab=profile&edit=true`
+
+**コード例:**
+```tsx
+// app/users/[id]/page.tsx
+export default function UserPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const { id } = params;
+  const { tab, edit } = searchParams;
+  
+  return (
+    <div>
+      <h1>User {id}</h1>
+      {tab && <p>Active tab: {tab}</p>}
+      {edit === 'true' && <p>Edit mode enabled</p>}
+    </div>
+  );
+}
+```
+
+#### 2. **複数の動的セグメント + クエリパラメータ**
+
+**ファイル構造:**
+```
+app/
+└── products/
+    └── [category]/
+        └── [productId]/
+            └── page.tsx
+```
+
+**URL例:**
+- `/products/electronics/123?color=red&size=large`
+
+**コード例:**
+```tsx
+// app/products/[category]/[productId]/page.tsx
+export default function ProductPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: { category: string; productId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const { category, productId } = params;
+  const { color, size } = searchParams;
+  
+  return (
+    <div>
+      <h1>Product Details</h1>
+      <p>Category: {category}</p>
+      <p>Product ID: {productId}</p>
+      {color && <p>Color: {color}</p>}
+      {size && <p>Size: {size}</p>}
+    </div>
+  );
+}
+```
+
+### 🔧 実践的な使用パターン
+
+#### 1. **ユーザープロフィールページ**
+```tsx
+// app/users/[id]/page.tsx
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  profile: {
+    bio: string;
+    avatar: string;
+  };
+}
+
+async function getUser(id: string): Promise<User> {
+  const res = await fetch(`https://api.example.com/users/${id}`);
+  if (!res.ok) throw new Error('User not found');
+  return res.json();
+}
+
+export default async function UserPage({ 
+  params, 
+  searchParams 
+}: { 
+  params: { id: string };
+  searchParams: { tab?: string; edit?: string };
+}) {
+  const user = await getUser(params.id);
+  const { tab = 'profile', edit } = searchParams;
+  
+  return (
+    <div className="user-profile">
+      <header>
+        <img src={user.profile.avatar} alt={user.name} />
+        <h1>{user.name}</h1>
+        <p>{user.email}</p>
+      </header>
+      
+      <nav>
+        <a href={`/users/${params.id}?tab=profile`} 
+           className={tab === 'profile' ? 'active' : ''}>
+          Profile
+        </a>
+        <a href={`/users/${params.id}?tab=settings`} 
+           className={tab === 'settings' ? 'active' : ''}>
+          Settings
+        </a>
+      </nav>
+      
+      <main>
+        {tab === 'profile' && (
+          <div>
+            <h2>Profile</h2>
+            <p>{user.profile.bio}</p>
+            {edit === 'true' && <button>Edit Profile</button>}
+          </div>
+        )}
+        
+        {tab === 'settings' && (
+          <div>
+            <h2>Settings</h2>
+            <p>Settings content...</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+```
+
+#### 2. **商品一覧ページ**
+```tsx
+// app/products/page.tsx
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  color: string;
+  size: string;
+}
+
+async function getProducts(searchParams: any): Promise<Product[]> {
+  const params = new URLSearchParams();
+  
+  if (searchParams.category) params.append('category', searchParams.category as string);
+  if (searchParams.color) params.append('color', searchParams.color as string);
+  if (searchParams.size) params.append('size', searchParams.size as string);
+  if (searchParams.sort) params.append('sort', searchParams.sort as string);
+  
+  const res = await fetch(`https://api.example.com/products?${params}`);
+  return res.json();
+}
+
+export default async function ProductsPage({ 
+  searchParams 
+}: { 
+  searchParams: { 
+    category?: string; 
+    color?: string; 
+    size?: string; 
+    sort?: string; 
+  } 
+}) {
+  const products = await getProducts(searchParams);
+  
+  return (
+    <div className="products-page">
+      <header>
+        <h1>Products</h1>
+        
+        {/* フィルター */}
+        <div className="filters">
+          <select 
+            value={searchParams.category || ''} 
+            onChange={(e) => {
+              const url = new URL(window.location.href);
+              if (e.target.value) {
+                url.searchParams.set('category', e.target.value);
+              } else {
+                url.searchParams.delete('category');
+              }
+              window.location.href = url.toString();
+            }}
+          >
+            <option value="">All Categories</option>
+            <option value="electronics">Electronics</option>
+            <option value="clothing">Clothing</option>
+            <option value="books">Books</option>
+          </select>
+          
+          <select 
+            value={searchParams.sort || 'name'} 
+            onChange={(e) => {
+              const url = new URL(window.location.href);
+              url.searchParams.set('sort', e.target.value);
+              window.location.href = url.toString();
+            }}
+          >
+            <option value="name">Sort by Name</option>
+            <option value="price">Sort by Price</option>
+            <option value="category">Sort by Category</option>
+          </select>
+        </div>
+      </header>
+      
+      <main>
+        <div className="products-grid">
+          {products.map(product => (
+            <div key={product.id} className="product-card">
+              <h3>{product.name}</h3>
+              <p>¥{product.price.toLocaleString()}</p>
+              <p>Category: {product.category}</p>
+              <a href={`/products/${product.category}/${product.id}`}>
+                View Details
+              </a>
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+### 📊 比較表
+
+| 項目 | params.id | クエリパラメータ |
+|------|-----------|------------------|
+| **場所** | URLパス内 | URLの?以降 |
+| **例** | `/users/123` | `?id=123&tab=profile` |
+| **ファイル構造** | `[id]/page.tsx` | `page.tsx` |
+| **必須性** | 必須 | オプショナル |
+| **型** | `string` | `string \| string[] \| undefined` |
+| **用途** | リソースの識別 | フィルタリング、ソート、状態 |
+
+### 🎯 使い分けのポイント
+
+#### params.id を使用する場面
+- **リソースの識別**: 特定のリソースを指す
+- **階層構造**: カテゴリ/商品ID
+- **SEO重要**: URLに含めたい情報
+
+#### クエリパラメータを使用する場面
+- **フィルタリング**: カテゴリ、色、サイズ
+- **ソート**: 並び順の指定
+- **ページネーション**: ページ番号
+- **状態管理**: タブ、モード
+
+### ⚠️ 注意点
+
+#### 1. **型安全性**
+```tsx
+// 良い例：型定義
+interface PageProps {
+  params: { id: string };
+  searchParams: { 
+    tab?: string; 
+    edit?: string; 
+  };
+}
+
+export default function Page({ params, searchParams }: PageProps) {
+  // 型安全な使用
+}
+```
+
+#### 2. **バリデーション**
+```tsx
+export default function UserPage({ params }: { params: { id: string } }) {
+  // IDの形式を検証
+  if (!/^\d+$/.test(params.id)) {
+    notFound();
+  }
+  
+  // 処理を続行
+}
+```
+
+#### 3. **エラーハンドリング**
+```tsx
+export default async function UserPage({ params }: { params: { id: string } }) {
+  try {
+    const user = await getUser(params.id);
+    return <div>{/* ユーザー情報 */}</div>;
+  } catch (error) {
+    notFound(); // 404ページを表示
+  }
+}
+```
+
+### 🎯 まとめ
+
+**params.id:**
+- ✅ **リソース識別**: 特定のリソースを指す
+- ✅ **SEO最適化**: URLに含まれる情報
+- ✅ **階層構造**: ネストされたルーティング
+
+**クエリパラメータ:**
+- ✅ **フィルタリング**: データの絞り込み
+- ✅ **状態管理**: ページの状態
+- ✅ **オプショナル**: 必須ではない情報
+
+両方を適切に組み合わせることで、柔軟で使いやすいURL構造を実現できます！🚀
 
 ---
 
