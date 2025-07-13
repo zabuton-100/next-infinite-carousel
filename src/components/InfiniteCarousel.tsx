@@ -238,6 +238,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
       const centerOffset = Math.floor((visibleCount as number) / 2);
       const startIndex = isMobile ? imageCount : imageCount - centerOffset;
       // SP時はパディング分+16pxを加味して中央寄せ
+      // （理由：SP時はカルーセル外側にpadding（px-4=16px）が入るため、中央寄せ時にその分だけ位置を補正する必要がある）
       const paddingOffset = isMobile ? 16 : 0;
       setCurrentIndex(startIndex);
       setTranslateX(-itemWidth * startIndex + paddingOffset);
@@ -318,7 +319,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     const domCardStates = Array.from({ length: (isMobile ? 10 * 3 : 10 * 3) }).map((_, idx) => {
       const emojiIdx = idx % emojiPairsArray.length;
       const emoji = emojiPairsArray[emojiIdx].front.emoji;
-      // visible判定: currentIndex <= idx < currentIndex + visibleCount
+      // SPとPCで「表示中」とみなす範囲の仕様が異なるため、isVisibleの判定ロジックを分岐している
       let isVisible = false;
       if (isMobile) {
         // SPはcurrentIndex-1〜currentIndex+1がvisible
@@ -336,9 +337,9 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [currentIndex, visibleCount, isMobile, emojiPairsArray, noTransition, translateX]);
 
-  // --- useEffect: 表示中の絵文字でページタイトルを動的に変更 ---
-  // 前: currentIndexやvisibleCountが変わった直後
-  // 後: document.titleが更新される
+  // currentIndex, visibleCount, isMobile, emojiPairsArray のいずれかが変化したとき、
+  // 表示中の絵文字でページタイトルを動的に更新する。
+  // emojiPairsArrayが変化した場合もタイトルの絵文字を再取得する必要があるため依存に含めている。
   useEffect(() => {
     if (isMobile === undefined || visibleCount === undefined) return;
     const emojis: string[] = [];
@@ -385,45 +386,63 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   // --- スライドを指定インデックスに移動する関数 ---
   // アニメーションや裏返しアニメーションも制御
   const slideTo = useCallback((target: number) => {
+    // すでにアニメーション中なら何もしない（多重実行防止）
     if (isAnimating) return;
+    // アニメーション開始フラグを立てる
     setIsAnimating(true);
+    // CSSトランジションを有効化
     setNoTransition(false);
+    // 全カードアニメーション中フラグを立てる（裏返しアニメーション用）
     setIsAnimatingAll(true);
+    // 現在表示中のカードを裏返す（flippedIndexesに追加）
     setFlippedIndexes(prev => {
       const newSet = new Set(prev);
       if (isMobile) {
+        // SPはcurrentIndexの前後1枚ずつ
         for (let i = -1; i <= 1; i++) {
           newSet.add(currentIndex + i);
         }
       } else {
+        // PCはvisibleCount分
         for (let i = 0; i < visibleCountNum; i++) {
           newSet.add(currentIndex + i);
         }
       }
       return newSet;
     });
+    // アニメーション後の処理をタイマーで遅延実行
     setTimeout(() => {
+      // 全カードアニメーション中フラグを解除
       setIsAnimatingAll(false);
+      // 目標インデックスまでの差分を計算
       const diff = target - currentIndex;
       const newIndex = currentIndex + diff;
+      // ループ時のインデックス補正（負値や最大値超えを正規化）
       const wrappedIndex = ((newIndex % totalSlides) + totalSlides) % totalSlides;
+      // SP時はパディング分+16pxを加味して中央寄せ
       const paddingOffset = isMobile ? 16 : 0;
+      // 次のスライド位置を計算
       const nextTranslateX = -itemWidth * wrappedIndex + paddingOffset;
       if (newIndex >= totalSlides || newIndex < 0) {
+        // ループ端を超えた場合は一度トランジションを無効化して瞬時に移動
         setNoTransition(true);
         setCurrentIndex(wrappedIndex);
         setTranslateX(nextTranslateX);
+        // 20ms後にトランジションを有効化して違和感を減らす
         setTimeout(() => {
           setNoTransition(false);
         }, 20);
       } else {
+        // 通常のスライド移動
         setCurrentIndex(wrappedIndex);
         setTranslateX(nextTranslateX);
       }
+      // アニメーション終了後の後処理（裏返しアニメーションのリセットなど）
       setTimeout(() => {
+        // アニメーションフラグを解除
         setIsAnimating(false);
         setIsAnimatingAll(false);
-        // --- 明るい面に戻す前にアニメーション用stateに追加 ---
+        // 明るい面に戻す前にflippingBackIndexesに追加（flipInXアニメーション用）
         setFlippingBackIndexes(prev => {
           const newSet = new Set(prev);
           if (isMobile) {
@@ -437,7 +456,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
           }
           return newSet;
         });
-        // 明るい面に戻す
+        // 明るい面に戻す（flippedIndexesから削除）
         setFlippedIndexes(prev => {
           const newSet = new Set(prev);
           if (isMobile) {
@@ -451,7 +470,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
           }
           return newSet;
         });
-        // 一定時間後にアニメーション用stateから削除
+        // 一定時間後にflippingBackIndexesからも削除（アニメーション終了）
         setTimeout(() => {
           setFlippingBackIndexes(prev => {
             const newSet = new Set(prev);
@@ -469,7 +488,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
         }, 500); // flipInXアニメーション時間
       }, 500);
     }, 500);
-    // スライドが末尾に到達しそうな場合は新しい絵文字を追加
+    // スライドが末尾に到達しそうな場合は新しい絵文字を追加（無限ループ用）
     if (target + slidesPerGroup > emojiPairsArray.length - preloadCount) {
       setEmojiPairsArray(prev => {
         const set = new Set(prev.map(p => p.front.emoji));
