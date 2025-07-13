@@ -133,6 +133,16 @@ export interface InfiniteCarouselProps {
   emojiPairsArray?: EmojiPair[];
 }
 
+// --- 再レンダリングについて ---
+// Reactコンポーネントは「ページのリロード」以外でも様々なタイミングで再レンダリングが発生します。
+// 例えば：
+//   - useStateやuseReducerなどで状態（state）が更新されたとき
+//   - 親コンポーネントから渡されるpropsが変化したとき
+//   - useContextで参照している値が変化したとき
+//   - forceUpdate（強制再描画）が呼ばれたとき
+//   - 親コンポーネントが再レンダリングされ、その影響が伝播したとき
+// これらのタイミングで関数や値が毎回新しく生成されると、パフォーマンス低下や意図しない副作用が起こることがあるため、useCallbackやuseMemoでメモ化することが重要です。
+
 // --- メインのカルーセルコンポーネント ---
 const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: initialEmojiPairsArray }) => {
   // 1. 画面幅に応じた表示枚数やモバイル判定を取得（この後の状態初期化やレイアウト分岐に使う）
@@ -376,6 +386,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 自動スクロールを停止する関数
+  // useCallbackでメモ化する理由: 再レンダリング時にこの関数の参照が毎回変わるのを防ぎ、依存配列に入れるuseEffectや子コンポーネントへの渡し時に無駄な再生成・副作用を防ぐため。
   const stopAutoScroll = useCallback(() => {
     if (!isAutoScrollStopped) {
       setIsAutoScrollStopped(true);
@@ -384,7 +395,10 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   }, [isAutoScrollStopped]);
 
   // --- スライドを指定インデックスに移動する関数 ---
-  // アニメーションや裏返しアニメーションも制御
+  // 自動スクロール（タイマー）、手動スワイプ、ボタンクリックのいずれの場合も
+  // このslideTo関数が呼ばれ、共通のスライド移動・アニメーション・裏返し処理などを実行する。
+  // そのため、スライド移動に関するロジックはこの関数に集約されている。
+  // useCallbackでメモ化する理由: 子コンポーネントやuseEffect、他のuseCallback関数の依存配列に入れる際、毎回新しい関数参照が生成されるのを防ぎ、不要な再レンダリングや副作用の発生を防ぐため。
   const slideTo = useCallback((target: number) => {
     // すでにアニメーション中なら何もしない（多重実行防止）
     if (isAnimating) return;
@@ -504,6 +518,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   }, [isAnimating, itemWidth, isMobile, currentIndex, visibleCountNum, totalSlides, emojiPairsArray, preloadCount, slidesPerGroup]);
 
   // --- 自動スクロールで次のスライドへ進む関数 ---
+  // useCallbackでメモ化する理由: setIntervalで定期的に呼び出す関数として安定した参照を維持し、依存配列に入れるuseEffectでの無駄な再生成や副作用を防ぐため。
   const handleAutoScrollNext = useCallback(() => {
     // isAnimating中はスキップ
     if (!isAnimating) {
@@ -549,6 +564,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- SVGチェックマークを一瞬表示する関数 ---
+  // useCallbackでメモ化する理由: 子コンポーネントやイベントハンドラ、useEffect等に渡す際、毎回新しい関数参照が生成されるのを防ぎ、パフォーマンスや副作用の安定性を高めるため。
   const triggerCheck = useCallback(() => {
     setShowCheck(true);
     console.log('[CheckCircle] 表示開始');
