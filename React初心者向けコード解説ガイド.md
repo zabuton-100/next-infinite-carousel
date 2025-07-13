@@ -13,6 +13,7 @@
 10. [実践的なコーディングパターン](#実践的なコーディングパターン)
 11. [デバッグとログ出力](#デバッグとログ出力)
 12. [🧪 Reactテストコードの基礎と実践](#reactテストコードの基礎と実践)
+13. [idとslugの違い](#idとslugの違い)
 
 ---
 
@@ -3693,3 +3694,106 @@ npm test
 # または
 npm run test
 ```
+
+---
+
+## idとslugの違い
+
+### 🎯 概要
+
+`id`と`slug`は、どちらもURLの一部やデータの識別子として使われますが、意味や用途が異なります。
+
+| 項目 | id | slug |
+|------|----|------|
+| 意味 | 一意な識別子（主に数値やランダム文字列） | URLに使うための分かりやすい文字列（英数字・ハイフン等） |
+| 例   | 123, 456, a1b2c3 | hello-world, my-first-post, user-taro |
+| 用途 | データベースの主キー、APIの内部参照 | SEO・ユーザビリティ向上、URLの可読性 |
+| 生成 | 自動生成（DBやUUIDなど） | タイトル等から自動生成・手動設定 |
+| URL例 | /users/123 | /blog/hello-world |
+
+### 🔍 使い分けのポイント
+- **id**: データベースやAPIで一意にデータを特定するための値。人間には意味が分かりにくいが、システム的に安全。
+- **slug**: 記事タイトルやユーザー名などを元に、URLとして分かりやすく・覚えやすくした文字列。SEOにも有利。
+
+### 📝 実際のNext.jsルーティング例
+
+#### idを使う場合
+```tsx
+// app/users/[id]/page.tsx
+export default function UserPage({ params }: { params: { id: string } }) {
+  // 例: /users/123
+  return <div>User ID: {params.id}</div>;
+}
+```
+
+#### slugを使う場合
+```tsx
+// app/blog/[slug]/page.tsx
+export default function BlogPost({ params }: { params: { slug: string } }) {
+  // 例: /blog/hello-world
+  return <div>Post Slug: {params.slug}</div>;
+}
+```
+
+### ⚠️ 注意点
+- `id`も`slug`も、Next.jsの動的ルーティング（[id], [slug]）でparamsとして受け取る点は同じ
+- どちらを使うかは「用途」と「URLの分かりやすさ」で選ぶ
+- セキュリティや一意性が重要な場合は`id`、ユーザーに見せるURLやSEO重視なら`slug`が推奨
+
+---
+
+### 🌐 具体的なURL例とparams・slugの位置
+
+#### 1. idを使う場合
+- URL: `https://example.com/users/123`
+- ルーティング: `app/users/[id]/page.tsx`
+- params: `{ id: "123" }`
+
+```
+https://example.com/users/123
+                          ↑
+                          └─ params.id（[id]）
+```
+
+#### 2. slugを使う場合
+- URL: `https://example.com/blog/hello-world`
+- ルーティング: `app/blog/[slug]/page.tsx`
+- params: `{ slug: "hello-world" }`
+
+```
+https://example.com/blog/hello-world
+                               ↑
+                               └─ params.slug（[slug]）
+```
+
+#### 3. 複数の動的セグメント
+- URL: `https://example.com/products/electronics/456`
+- ルーティング: `app/products/[category]/[productId]/page.tsx`
+- params: `{ category: "electronics", productId: "456" }`
+
+```
+https://example.com/products/electronics/456
+                                 ↑           ↑
+                                 │           └─ params.productId（[productId]）
+                                 └───────────── params.category（[category]）
+```
+
+#### 4. キャッチオール（slugが配列になる例）
+- URL: `https://example.com/shop/electronics/phones/123`
+- ルーティング: `app/shop/[[...slug]]/page.tsx`
+- params: `{ slug: ["electronics", "phones", "123"] }`
+
+```
+https://example.com/shop/electronics/phones/123
+                        ↑           ↑      ↑
+                        └───────────┴──────┴─ params.slug（[...slug] 配列）
+```
+
+> **ポイント**
+> - URLの「動的な部分」がparamsとして渡される
+> - [id]や[slug]など、ファイル名がそのままparamsのキー名になる
+> - slugは「意味のある文字列」、idは「一意な識別子」として使い分ける
+
+---
+
+</rewritten_file>
