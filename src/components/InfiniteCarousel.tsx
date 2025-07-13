@@ -7,19 +7,25 @@ import emojiDictionary from "emoji-dictionary";
 import unicodeEmojiJsonRaw from "unicode-emoji-json";
 const unicodeEmojiJson = unicodeEmojiJsonRaw as Record<string, { group?: string }>;
 
+// pastelColors: カードの背景色として使うパステルカラーの配列
 const pastelColors = [
   '#ffd1dc', '#ffe4b5', '#b5ead7', '#c7ceea', '#fdfd96', '#baffc9', '#bae1ff', '#fff1ba', '#ffb7b2', '#e2f0cb',
   '#ffe0f0', '#ffe5ec', '#e0bbff', '#d0f4de', '#f1f7b5', '#b5ead7', '#b5d8ff', '#f7cac9', '#f6eac2', '#e2f0cb',
   '#f3ffe3', '#e3f6fd', '#fff5e1', '#f9e2ae', '#e4f9f5', '#f7f6e7', '#fbe7c6', '#e2ece9', '#f6dfeb',
 ];
+// darkColors: 裏面や補色用のダークカラー配列
 const darkColors = [
   '#22223b', '#4a4e69', '#232946', '#1a1a2e', '#2d3142', '#222831', '#393e46', '#212121', '#343a40', '#2c2c54',
   '#1b1b2f', '#162447', '#1f4068', '#283655', '#3a3a3a', '#232931', '#393e46', '#222f3e', '#2d3436', '#353b48',
   '#2f3640', '#1e272e', '#485460', '#3d3d5c', '#2c3e50', '#22313f', '#1a1a40', '#232b2b', '#2e2e38', '#22223b',
 ];
+
+// 配列からランダムに1つ値を取得するユーティリティ関数
 function getRandomFromArray<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
+
+// ランダムな絵文字を取得する関数
 function getRandomEmoji() {
   const ranges = [
     [0x1F300, 0x1F5FF], [0x1F600, 0x1F64F], [0x1F680, 0x1F6FF], [0x1F700, 0x1F77F], [0x1F780, 0x1F7FF],
@@ -36,6 +42,8 @@ function getRandomEmoji() {
   }
   return emoji;
 }
+
+// 既に使われている絵文字と被らないようにランダムな絵文字ペアを生成
 function getUniqueRandomEmojiPair(existingEmojis: Set<string>) {
   let emoji = getRandomEmoji();
   let tries = 0;
@@ -55,7 +63,7 @@ function getUniqueRandomEmojiPair(existingEmojis: Set<string>) {
   };
 }
 
-// Swiper風の設定
+// Swiper風の設定オブジェクト（カルーセルの動作を制御）
 const SWIPER_CONFIG = {
   speed: 300, // アニメーション速度（ms）
   slidesPerView: 3, // 表示スライド数
@@ -78,14 +86,14 @@ const SWIPER_CONFIG = {
   centeredSlides: false, // 中央寄せスライド
 };
 
-// ログ用タイムスタンプ関数
+// ログ出力用のタイムスタンプを生成する関数
 function getLogTimestamp() {
   const d = new Date();
   const pad = (n: number, z = 2) => ('00' + n).slice(-z);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${('00' + d.getMilliseconds()).slice(-3)}`;
 }
 
-// getComplementaryColor, toTitleCaseFromSnakeの本来の実装を復元
+// 補色（反対色）を計算する関数。背景色に対して文字色を決めるのに使う
 function getComplementaryColor(hex: string) {
   hex = hex.replace('#', '');
   if (hex.length === 3) {
@@ -105,6 +113,7 @@ function getComplementaryColor(hex: string) {
   );
 }
 
+// スネークケースの文字列をタイトルケースに変換する関数
 function toTitleCaseFromSnake(str: string) {
   return str
     .toLowerCase()
@@ -113,7 +122,7 @@ function toTitleCaseFromSnake(str: string) {
     .join(' ');
 }
 
-// --- ファイル末尾にまとめて定義・export ---
+// --- 型定義 ---
 type EmojiPair = {
   front: { emoji: string; color: string };
   back: { emoji: string; color: string };
@@ -121,11 +130,16 @@ type EmojiPair = {
 export interface InfiniteCarouselProps {
   emojiPairsArray?: EmojiPair[];
 }
+
+// --- メインのカルーセルコンポーネント ---
 const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: initialEmojiPairsArray }) => {
+  // 1. 画面幅に応じた表示枚数やモバイル判定を取得（この後の状態初期化やレイアウト分岐に使う）
   const { isMobile, visibleCount } = useResponsiveCarouselCount();
 
-  // emojiPairsArrayのuseStateを最初に宣言
-  const preloadCount = 6; // PC基準で最大値
+  // 2. カルーセルに表示する絵文字ペア配列の状態を初期化
+  //   - propsで初期値が来ていればそれを使う
+  //   - なければランダム生成（この後の描画やスライド移動で参照）
+  const preloadCount = 6;
   const [emojiPairsArray, setEmojiPairsArray] = useState<EmojiPair[]>(() => {
     // propsから初期値が来ていればそれを使う
     if (initialEmojiPairsArray && initialEmojiPairsArray.length > 0) {
@@ -144,50 +158,63 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     return arr;
   });
 
-  // ここで全てのHooksを呼び出す
-  const imageCount = 10; // 使わなくなるが一応残す
-  const slidesPerGroup = isMobile ? 1 : SWIPER_CONFIG.slidesPerGroup;
-  const totalSlides = 10 * 3; // 10個×3セット
-  const initialIndex = 10;
+  // 3. カルーセルの動作に関わる各種状態を初期化
+  //   - これらの状態はイベントやuseEffectで更新され、描画やアニメーションに反映される
+  const imageCount = 10; // 1セットあたりのカード枚数
+  const slidesPerGroup = isMobile ? 1 : SWIPER_CONFIG.slidesPerGroup; // 1回の移動枚数
+  const totalSlides = 10 * 3; // 3セット分のスライド数
+  const initialIndex = 10; // 初期表示位置（中央付近）
 
+  // --- 状態の前後関係 ---
+  // currentIndex: 現在の表示インデックス（ボタン・スワイプ・自動スクロールで変化）
+  //   → 変化後、translateXやアニメーション状態も更新される
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  // isAnimating: アニメーション中かどうか（スライド移動時にtrue、完了後false）
   const [isAnimating, setIsAnimating] = useState(false);
+  // noTransition: CSSトランジションを無効化するか（ドラッグ中true、終了後false）
   const [noTransition, setNoTransition] = useState(false);
+  // itemWidth: 画像1枚分の横幅（リサイズや初期化時に更新）
   const [itemWidth, setItemWidth] = useState(0);
+  // translateX: カルーセル全体の横方向の移動量（currentIndexやドラッグで変化）
   const [translateX, setTranslateX] = useState(0);
 
+  // --- useRefの前後関係 ---
+  // carouselRef, itemRef: DOM要素参照（itemWidth取得やドラッグ判定で使う）
+  // isFirstRender: 初回描画かどうか（初期位置セット時に利用）
   const carouselRef = useRef<HTMLDivElement>(null);
   const itemRef = useRef<HTMLDivElement>(null);
-  // 初回描画判定用
   const isFirstRender = useRef(true);
 
-  // flipInX中のindexを管理
+  // flippedIndexes: 裏返しアニメーション中のカードインデックス
+  // flippingBackIndexes: 明るい面に戻すアニメーション用インデックス
+  // visibleCountNum: 表示枚数（visibleCountの数値版）
   const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
   const visibleCountNum = visibleCount as number;
-
-  // flipInXで明るい面に戻すアニメーション用
   const [flippingBackIndexes, setFlippingBackIndexes] = useState<Set<number>>(new Set());
 
-  // ページタイトル（h1と同じ文字列）
+  // --- ページタイトル ---
   const PAGE_TITLE = "Emoji Carousel";
 
-  // イベントリスナーのクリーンアップ用useEffect
+  // --- useEffect: グローバルイベントリスナーのクリーンアップ ---
+  // 前: ドラッグ中にmousemove/upイベントをwindowに追加することがある
+  // 後: アンマウント時に必ず削除（メモリリーク防止）
   useEffect(() => {
     return () => {
-      // コンポーネントのアンマウント時にイベントリスナーを確実に削除
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     };
-  }, []); // 空の依存配列でマウント時のみ実行
+  }, []);
 
-  // 画像1枚分の横幅を取得
+  // --- useEffect: 画像1枚分の横幅を取得し、リサイズ時も更新 ---
+  // 前: itemRefがセットされている必要あり
+  // 後: itemWidthが変わると初期位置やtranslateXの計算に使われる
   useEffect(() => {
     const updateWidth = () => {
       if (itemRef.current) {
         let width = itemRef.current.offsetWidth;
-        width += SWIPER_CONFIG.spaceBetween;
+        width += SWIPER_CONFIG.spaceBetween; // スライド間の余白も加算
         setItemWidth(width);
-        console.log('[updateWidth]', { itemWidth: width, isMobile, currentIndex });
+        // 後: itemWidthが変わると初期位置セットのuseEffectが再実行される
       }
     };
     updateWidth();
@@ -195,7 +222,9 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     return () => window.removeEventListener('resize', updateWidth);
   }, [isMobile, currentIndex]);
 
-  // 初期位置を中央に（初回はアニメーションなし）
+  // --- useEffect: 初期位置を中央にセット ---
+  // 前: itemWidth, isMobile, visibleCountが揃っている必要あり
+  // 後: currentIndex, translateX, noTransitionが初期化される
   useEffect(() => {
     // isMobile, visibleCount, itemWidth が揃ったタイミングで初期位置をセット
     if (itemWidth === 0 || isMobile === undefined || visibleCount === undefined) return;
@@ -224,7 +253,9 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [itemWidth, isMobile, visibleCount, currentIndex]);
 
-  // 表示中の要素番号をログ出力
+  // --- useEffect: 表示中のカード情報をログ出力 ---
+  // 前: currentIndexやvisibleCountNumが変わった直後
+  // 後: デバッグ用ログ出力のみ
   useEffect(() => {
     if (isMobile === undefined || visibleCount === undefined) return;
     const centerOffset = Math.floor(visibleCountNum / 2);
@@ -240,7 +271,9 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     console.log(getLogTimestamp(), '表示状態:', { shownIndex, cardCount, visibleCards, isMobile, translateX, noTransition });
   }, [currentIndex, visibleCountNum, imageCount, isMobile, visibleCount, noTransition, translateX]);
 
-  // 表示中・preload絵文字のconsole出力
+  // --- useEffect: 表示中・preload絵文字のconsole出力 ---
+  // 前: currentIndexやvisibleCountが変わった直後
+  // 後: デバッグ用ログ出力のみ
   useEffect(() => {
     if (isMobile === undefined || visibleCount === undefined) return;
     const emojis: string[] = [];
@@ -299,7 +332,9 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [currentIndex, visibleCount, isMobile, emojiPairsArray, noTransition, translateX]);
 
-  // 表示中の3枚の絵文字でタイトルを動的に変更
+  // --- useEffect: 表示中の絵文字でページタイトルを動的に変更 ---
+  // 前: currentIndexやvisibleCountが変わった直後
+  // 後: document.titleが更新される
   useEffect(() => {
     if (isMobile === undefined || visibleCount === undefined) return;
     const emojis: string[] = [];
@@ -317,15 +352,25 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     document.title = `Emoji ( ${emojis.join(' - ')} )`;
   }, [currentIndex, visibleCount, isMobile, emojiPairsArray]);
 
-  // 初期タイトルをh1と同じにする
+  // --- useEffect: 初期タイトルをh1と同じにする ---
+  // 前: マウント直後
+  // 後: document.titleが初期化される
   useEffect(() => {
     document.title = PAGE_TITLE;
   }, []);
 
-  const [isAutoScrollStopped, setIsAutoScrollStopped] = useState(false); // 自動スクロール停止フラグ
+  // --- 自動スクロール関連 ---
+  // isAutoScrollStopped: 自動スクロールが止まっているか（ユーザー操作や初期化でtrueになる）
+  // autoScrollIntervalRef: setIntervalのIDを保持（自動スクロールの開始・停止で使う）
+  // stopAutoScroll: ユーザー操作時に呼ばれ、自動スクロールを止める
+  // handleAutoScrollNext: 一定間隔で次のスライドへ進む
+  // useEffect: isAutoScrollStoppedがfalseの間だけ自動スクロールを維持
+  // 自動スクロールが停止しているかどうか
+  const [isAutoScrollStopped, setIsAutoScrollStopped] = useState(false);
+  // setIntervalのIDを保持
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 自動スクロール停止トリガー
+  // 自動スクロールを停止する関数
   const stopAutoScroll = useCallback(() => {
     if (!isAutoScrollStopped) {
       setIsAutoScrollStopped(true);
@@ -333,8 +378,8 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [isAutoScrollStopped]);
 
-  // サーバー生成propsのみで動作するため、スライド移動はインデックスのみ変更
-  // ReferenceError対策として、slideToをこの位置で必ず定義
+  // --- スライドを指定インデックスに移動する関数 ---
+  // アニメーションや裏返しアニメーションも制御
   const slideTo = useCallback((target: number) => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -435,7 +480,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [isAnimating, itemWidth, isMobile, currentIndex, visibleCountNum, totalSlides, emojiPairsArray, preloadCount, slidesPerGroup]);
 
-  // navigateをラップした自動スクロール用関数
+  // --- 自動スクロールで次のスライドへ進む関数 ---
   const handleAutoScrollNext = useCallback(() => {
     // isAnimating中はスキップ
     if (!isAnimating) {
@@ -445,34 +490,42 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   }, [currentIndex, isAnimating, slideTo, slidesPerGroup]);
 
-  // 自動スクロール用エフェクト
+  // --- useEffect: 一定間隔で自動スクロール ---
   useEffect(() => {
     if (isAutoScrollStopped || isMobile === undefined || visibleCount === undefined) return;
     autoScrollIntervalRef.current = setInterval(() => {
       handleAutoScrollNext();
-    }, 1500); // 1.5倍に変更（1000ms → 1500ms）
+    }, 1500); // 1.5秒ごとに自動でスライド
     console.log('[Carousel] 自動スクロール開始');
     return () => {
       if (autoScrollIntervalRef.current) clearInterval(autoScrollIntervalRef.current);
     };
   }, [isAutoScrollStopped, isMobile, visibleCount, handleAutoScrollNext]);
 
+  // --- 全カードがアニメーション中かどうかの状態 ---
   const [isAnimatingAll, setIsAnimatingAll] = useState(false);
 
-  // ドラッグ・スワイプ用の状態
+  // --- ドラッグ・スワイプ操作のための一時的な状態 ---
+  // dragState: ドラッグ開始時にセットし、move/endで参照
+  // 前: handleDragStartでセット
+  // 後: handleDragMove/handleDragEndで参照・更新
   const dragState = useRef({
-    isDragging: false,
-    startX: 0,
-    lastX: 0,
-    isTouch: false,
-    startTranslateX: 0, // 追加: スワイプ開始時のtranslateX
+    isDragging: false, // ドラッグ中かどうか
+    startX: 0,         // ドラッグ開始時のX座標
+    lastX: 0,          // 直近のX座標
+    isTouch: false,    // タッチ操作かどうか
+    startTranslateX: 0, // ドラッグ開始時のtranslateX
   });
 
-  // SVG表示用の状態
+  // --- SVGチェックマーク表示用の状態 ---
+  // showCheck: チェックマーク表示中か
+  // checkTimerRef: setTimeoutのIDを保持
+  // triggerCheck: チェックマークを一瞬表示（ドラッグやボタン操作時に呼ばれる）
+  // useEffect: アンマウント時にタイマーをクリア
   const [showCheck, setShowCheck] = useState(false);
   const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // SVGを一瞬表示する関数
+  // --- SVGチェックマークを一瞬表示する関数 ---
   const triggerCheck = useCallback(() => {
     setShowCheck(true);
     console.log('[CheckCircle] 表示開始');
@@ -483,33 +536,40 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }, 700); // 0.7秒表示
   }, []);
 
-  // クリーンアップ
+  // --- useEffect: SVGチェックマークのクリーンアップ ---
   useEffect(() => {
     return () => {
       if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
     };
   }, []);
 
-  // ドラッグ・スワイプ開始
+  // --- ドラッグ・スワイプ開始時の処理 ---
+  // 前: ユーザーがマウスダウン/タッチスタートした直後
+  // 後: isDraggingがtrueになり、mousemove/upイベントが発火したらhandleDragMove/handleDragEndが呼ばれる
   const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+    // ユーザーが操作したら自動スクロールを止める
     stopAutoScroll();
-    // マウスドラッグ時は開始時にチェックサークル表示しない（終了時のみ表示）
+    // タッチ操作の場合はチェックマークを表示
     if ('touches' in e) {
-      triggerCheck(); // タッチ時のみ開始時にチェックサークル表示
+      triggerCheck();
     }
+    // ドラッグ状態をセット
     dragState.current.isDragging = true;
     dragState.current.isTouch = 'touches' in e;
     dragState.current.startX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     dragState.current.lastX = dragState.current.startX;
-    dragState.current.startTranslateX = translateX; // 追加
-    setNoTransition(true); // 追加: スワイプ中はアニメーション無効
+    dragState.current.startTranslateX = translateX;
+    setNoTransition(true); // ドラッグ中はアニメーション無効
+    // マウス操作の場合はグローバルイベントリスナーを追加
     if (!('touches' in e)) {
       window.addEventListener('mousemove', handleDragMove as EventListener);
       window.addEventListener('mouseup', handleDragEnd as EventListener);
     }
   };
 
-  // ドラッグ・スワイプ移動
+  // --- ドラッグ・スワイプ中の処理 ---
+  // 前: handleDragStartでisDraggingがtrueになっている
+  // 後: マウス/タッチが動くたびにtranslateXが更新され、カルーセルがリアルタイムで動く
   const handleDragMove = (e: TouchEvent | MouseEvent | React.TouchEvent | React.MouseEvent) => {
     if (!dragState.current.isDragging) return;
     let clientX: number;
@@ -521,22 +581,26 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
       return;
     }
     dragState.current.lastX = clientX;
-    // 追加: スワイプ中はtranslateXを動的に更新
+    // ドラッグ距離分だけカルーセルを動かす
     const dx = clientX - dragState.current.startX;
     setTranslateX(dragState.current.startTranslateX + dx);
   };
 
-  // ドラッグ・スワイプ終了
+  // --- ドラッグ・スワイプ終了時の処理 ---
+  // 前: handleDragMoveでisDraggingがtrueの状態でマウス/タッチを離す
+  // 後: 一定距離以上ならスライド移動、足りなければ元の位置に戻す。isDragging=falseに
   const handleDragEnd = () => {
     if (!dragState.current.isDragging) return;
     const dx = dragState.current.lastX - dragState.current.startX;
     dragState.current.isDragging = false;
-    setNoTransition(false); // 追加: スワイプ終了でアニメーション復帰
+    setNoTransition(false); // アニメーションを有効に戻す
+    // マウス操作の場合はグローバルイベントリスナーを削除
     if (!dragState.current.isTouch) {
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
-    const threshold = isMobile ? 10 : 20; // タッチパッドと同じ閾値に統一
+    // 一定距離以上ドラッグしたらスライドを移動
+    const threshold = isMobile ? 10 : 20;
     if (dx > threshold) {
       setLastScrollDirection('swipe-left');
       triggerCheck();
@@ -546,18 +610,21 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
       triggerCheck();
       slideTo(currentIndex + slidesPerGroup);
     } else {
+      // 距離が足りなければ元の位置に戻す
       setTranslateX(dragState.current.startTranslateX);
     }
   };
 
-  // ホイールイベント対応（トラックパッド横スクロール）
+  // --- ホイール（トラックパッド横スクロール）対応 ---
+  // 前: ユーザーがトラックパッドで横スクロールした直後
+  // 後: 一定量以上ならスライド移動、currentIndexが変わる
   const handleWheel = (e: React.WheelEvent) => {
     // 横スクロール量が一定以上ならスライド
-    const wheelThreshold = isMobile ? 10 : 20; // SPは10, PCは20
+    const wheelThreshold = isMobile ? 10 : 20;
     if (Math.abs(e.deltaX) > wheelThreshold && !isAnimating) {
       stopAutoScroll();
       setLastScrollDirection(e.deltaX > 0 ? 'swipe-right' : 'swipe-left');
-      triggerCheck(); // ホイール（タッチパッドスワイプ）でもチェックサークル表示
+      triggerCheck();
       if (e.deltaX > 0) {
         slideTo(currentIndex + slidesPerGroup);
       } else {
@@ -566,11 +633,15 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     }
   };
 
-  // スクロール方向を管理するstateを追加
+  // --- スクロール方向を管理する状態 ---
+  // lastScrollDirection: 直近のスワイプ/ボタン操作の方向（SVG表示やアニメーションで利用）
   const [lastScrollDirection, setLastScrollDirection] = useState<'swipe-left' | 'swipe-right' | 'button-left' | 'button-right'>('swipe-right');
 
+  // --- レンダリング部分 ---
+  // 前: 各状態がセットされていること
+  // 後: JSXでカルーセル・カード・ボタンなどが描画され、ユーザー操作で状態が変化
   if (isMobile === undefined || visibleCount === undefined) {
-    // --- スケルトンスクリーン ---
+    // 画面幅の判定が終わるまでスケルトンスクリーンを表示
     return (
       <div className="w-full min-h-screen flex flex-col items-center bg-gray-100 pt-4 md:pt-12">
         <div className="w-full max-w-6xl px-0 md:px-0">
@@ -589,12 +660,12 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     );
   }
 
-  // カルーセルコンテナのスタイル分岐
+  // カルーセル全体のコンテナクラス（SP/PCで幅やパディングを調整）
   const carouselContainerClass = isMobile
-    ? "w-full max-w-[320px] mx-auto overflow-hidden px-4 relative" // SP時はパディング追加＋relative
+    ? "w-full max-w-[320px] mx-auto overflow-hidden px-4 relative"
     : "w-full max-w-[944px] mx-auto overflow-hidden relative";
 
-  // カルーセル本体のスタイル
+  // カルーセル本体のスタイル（横幅・transform・アニメーション）
   const carouselStyle = {
     width: (isMobile ? 240 : 300) * totalSlides + SWIPER_CONFIG.spaceBetween * 2 * totalSlides,
     transform: `translateX(${translateX}px)` ,
@@ -602,14 +673,14 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     willChange: 'transform',
   };
 
-  // カードのスタイル
+  // カード1枚のクラス（SP/PCでサイズや装飾を分岐）
   const getCardClass = () => {
     return isMobile
       ? "flex-shrink-0 w-[240px] h-80 mx-2 p-4 flex flex-col items-center justify-center bg-gray-700 rounded-lg shadow-lg border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 relative"
       : "flex-shrink-0 w-[300px] h-120 mx-2 p-4 flex flex-col items-center justify-center bg-gray-700 rounded-lg shadow-lg border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 relative";
   };
 
-  // SP/PCでボタンのスタイルを分岐
+  // ナビゲーションボタンのクラス（SP/PCで見た目を分岐）
   const navButtonClass = isMobile
     ? "absolute top-1/2 -translate-y-1/2 z-20 bg-white rounded-full shadow-lg border-2 border-gray-200 hover:border-blue-300 flex-shrink-0 w-10 h-10 flex items-center justify-center text-xl p-0.5 active:scale-95 transition-all"
     : "p-1 md:p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 transition-colors border-2 border-gray-200 hover:border-blue-300 flex-shrink-0 text-xs md:text-base z-10";
