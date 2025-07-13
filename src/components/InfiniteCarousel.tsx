@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useResponsiveCarouselCount } from "./useResponsiveCarouselCount";
+// emoji-dictionaryは型定義が無いためanyとしてimport（TypeScriptの型エラーを防ぐためas anyを使う）
 // @ts-expect-error: 型定義が無いためanyでimport
 import emojiDictionary from "emoji-dictionary";
+// unicodeEmojiJsonRawは型が不明（any）なので、TypeScriptで安全に使うためRecord<string, { group?: string }>型として扱う（asによる型アサーション）
 import unicodeEmojiJsonRaw from "unicode-emoji-json";
 const unicodeEmojiJson = unicodeEmojiJsonRaw as Record<string, { group?: string }>;
 
@@ -189,6 +191,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   // flippingBackIndexes: 明るい面に戻すアニメーション用インデックス
   // visibleCountNum: 表示枚数（visibleCountの数値版）
   const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
+  // visibleCountはnumber | undefined型だが、直前のuseEffectなどでundefinedチェック済みなので、ここではnumber型であることを自分で保証している（TypeScriptの型推論の都合でas numberによる型アサーションを使う）
   const visibleCountNum = visibleCount as number;
   const [flippingBackIndexes, setFlippingBackIndexes] = useState<Set<number>>(new Set());
 
@@ -200,6 +203,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
   // 後: アンマウント時に必ず削除（メモリリーク防止）
   useEffect(() => {
     return () => {
+      // addEventListener/removeEventListenerの引数はEventListener型が必要だが、handleDragMove/handleDragEndは型が合わないため、as EventListenerで型アサーションしている（TypeScriptの型エラー回避のため）
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     };
@@ -562,6 +566,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     setNoTransition(true); // ドラッグ中はアニメーション無効
     // マウス操作の場合はグローバルイベントリスナーを追加
     if (!('touches' in e)) {
+      // addEventListener/removeEventListenerの引数はEventListener型が必要だが、handleDragMove/handleDragEndは型が合わないため、as EventListenerで型アサーションしている（TypeScriptの型エラー回避のため）
       window.addEventListener('mousemove', handleDragMove as EventListener);
       window.addEventListener('mouseup', handleDragEnd as EventListener);
     }
@@ -596,6 +601,7 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
     setNoTransition(false); // アニメーションを有効に戻す
     // マウス操作の場合はグローバルイベントリスナーを削除
     if (!dragState.current.isTouch) {
+      // addEventListener/removeEventListenerの引数はEventListener型が必要だが、handleDragMove/handleDragEndは型が合わないため、as EventListenerで型アサーションしている（TypeScriptの型エラー回避のため）
       window.removeEventListener('mousemove', handleDragMove as EventListener);
       window.removeEventListener('mouseup', handleDragEnd as EventListener);
     }
@@ -881,17 +887,18 @@ const InfiniteCarousel: React.FC<InfiniteCarouselProps> = ({ emojiPairsArray: in
                   let totalCount;
                   if (!isMobile) {
                     // PC時: 中央カードの番号を1セット分で表示
-                    const setLength = emojiPairsArray.length / 3; // 1セット分の枚数
+                    const setLength = Math.floor(emojiPairsArray.length / 3); // 1セット分の枚数（整数化）
                     const centerIndex = currentIndex + centerOffset;
                     shownIndex = ((centerIndex % setLength) + setLength) % setLength + 1;
                     totalCount = setLength;
                   } else {
                     // モバイル時: currentIndexを1セット分で表示
-                    const setLength = emojiPairsArray.length / 3;
+                    const setLength = Math.floor(emojiPairsArray.length / 3); // 整数化
                     shownIndex = ((currentIndex % setLength) + setLength) % setLength + 1;
                     totalCount = setLength;
                   }
-                  return `現在表示中: ${shownIndex} / ${totalCount}`;
+                  // 小数点が出ないように整数化して表示
+                  return `現在表示中: ${Math.floor(shownIndex)} / ${Math.floor(totalCount)}`;
                 })()
               }
             </span>
