@@ -99,6 +99,158 @@ const [posts, setPosts] = useState([
 ]);
 ```
 
+**ネストした状態管理が悪い理由：**
+
+### 1. **更新が複雑になる**
+```jsx
+// ネストした状態での投稿更新（悪い例）
+const updatePost = (userId, postId, newTitle) => {
+  setUsers(prevUsers => 
+    prevUsers.map(user => 
+      user.id === userId 
+        ? {
+            ...user,
+            posts: user.posts.map(post => 
+              post.id === postId 
+                ? { ...post, title: newTitle }
+                : post
+            )
+          }
+        : user
+    )
+  );
+};
+
+// 正規化された状態での投稿更新（良い例）
+const updatePost = (postId, newTitle) => {
+  setPosts(prevPosts => 
+    prevPosts.map(post => 
+      post.id === postId 
+        ? { ...post, title: newTitle }
+        : post
+    )
+  );
+};
+```
+
+### 2. **パフォーマンスの問題**
+```jsx
+// ネストした状態では、小さな変更でも大きなオブジェクト全体が再作成される
+const addPost = (userId, newPost) => {
+  setUsers(prevUsers => 
+    prevUsers.map(user => 
+      user.id === userId 
+        ? {
+            ...user,           // ユーザー全体をコピー
+            posts: [...user.posts, newPost]  // 投稿配列全体をコピー
+          }
+        : user
+    )
+  );
+};
+
+// 正規化された状態では、変更された部分のみ更新
+const addPost = (newPost) => {
+  setPosts(prevPosts => [...prevPosts, newPost]); // 投稿配列のみ更新
+};
+```
+
+### 3. **データの重複**
+```jsx
+// ネストした状態では、同じデータが複数箇所に存在する可能性
+const [users, setUsers] = useState([
+  {
+    id: 1,
+    name: 'Alice',
+    posts: [
+      { id: 1, title: 'Post 1', content: 'Content 1' },
+      { id: 2, title: 'Post 2', content: 'Content 2' }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Bob',
+    posts: [
+      { id: 1, title: 'Post 1', content: 'Content 1' } // 同じ投稿が重複
+    ]
+  }
+]);
+
+// 正規化された状態では、データの重複を避けられる
+const [users, setUsers] = useState([
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' }
+]);
+const [posts, setPosts] = useState([
+  { id: 1, title: 'Post 1', content: 'Content 1' } // 1つだけ存在
+]);
+```
+
+### 4. **デバッグの困難さ**
+```jsx
+// ネストした状態では、状態の変化を追跡しにくい
+useEffect(() => {
+  console.log('Users changed:', users); // どの部分が変わったか分かりにくい
+}, [users]);
+
+// 正規化された状態では、変更を明確に追跡できる
+useEffect(() => {
+  console.log('Users changed:', users);
+}, [users]);
+
+useEffect(() => {
+  console.log('Posts changed:', posts);
+}, [posts]);
+```
+
+### 5. **再利用性の低下**
+```jsx
+// ネストした状態では、投稿データを他の場所で使いにくい
+const PostList = ({ users }) => {
+  // ユーザーから投稿を抽出する必要がある
+  const allPosts = users.flatMap(user => user.posts);
+  return (
+    <div>
+      {allPosts.map(post => <PostItem key={post.id} post={post} />)}
+    </div>
+  );
+};
+
+// 正規化された状態では、直接投稿データを使用できる
+const PostList = ({ posts }) => {
+  return (
+    <div>
+      {posts.map(post => <PostItem key={post.id} post={post} />)}
+    </div>
+  );
+};
+```
+
+### 6. **メモリ使用量の増加**
+```jsx
+// ネストした状態では、オブジェクトの深いコピーが必要
+const updateUser = (userId, newName) => {
+  setUsers(prevUsers => 
+    prevUsers.map(user => 
+      user.id === userId 
+        ? { ...user, name: newName } // ユーザーとその投稿すべてをコピー
+        : user
+    )
+  );
+};
+
+// 正規化された状態では、必要な部分のみコピー
+const updateUser = (userId, newName) => {
+  setUsers(prevUsers => 
+    prevUsers.map(user => 
+      user.id === userId 
+        ? { ...user, name: newName } // ユーザー情報のみコピー
+        : user
+    )
+  );
+};
+```
+
 #### 2. **状態の分割**
 ```jsx
 // 悪い例：大きな状態オブジェクト
